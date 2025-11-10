@@ -11,19 +11,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $fileManager) {
     $auth->logActivity($auth->getUserId(), $websiteId, 'file_operation', 'File operation performed');
     
     if (isset($_POST['create_file'])) {
-        $filename = $_POST['filename'];
+        $filename = trim($_POST['filename'] ?? '');
         $content = $_POST['content'] ?? '';
-        if ($fileManager->createFile($filename, $content)) {
-            echo '<div class="alert alert-success">Tạo file thành công!</div>';
+        if (empty($filename)) {
+            echo '<div class="alert alert-danger">Tên file không được để trống!</div>';
+        } elseif ($fileManager->createFile($filename, $content)) {
+            echo '<div class="alert alert-success">Tạo file thành công! Đang tải lại trang...</div>';
+            echo '<script>setTimeout(function(){ window.location.reload(); }, 1000);</script>';
         } else {
-            echo '<div class="alert alert-danger">Không thể tạo file!</div>';
+            echo '<div class="alert alert-danger">Không thể tạo file! Kiểm tra quyền truy cập và error log.</div>';
         }
     } elseif (isset($_POST['create_folder'])) {
-        $dirname = $_POST['dirname'];
-        if ($fileManager->createDirectory($dirname)) {
-            echo '<div class="alert alert-success">Tạo thư mục thành công!</div>';
+        $dirname = trim($_POST['dirname'] ?? '');
+        if (empty($dirname)) {
+            echo '<div class="alert alert-danger">Tên thư mục không được để trống!</div>';
+        } elseif ($fileManager->createDirectory($dirname)) {
+            echo '<div class="alert alert-success">Tạo thư mục thành công! Đang tải lại trang...</div>';
+            echo '<script>setTimeout(function(){ window.location.reload(); }, 1000);</script>';
         } else {
-            echo '<div class="alert alert-danger">Không thể tạo thư mục!</div>';
+            echo '<div class="alert alert-danger">Không thể tạo thư mục! Kiểm tra quyền truy cập và error log.</div>';
         }
     } elseif (isset($_POST['delete'])) {
         $path = $_POST['path'];
@@ -79,10 +85,27 @@ if ($fileManager) {
     <div class="card-body">
         <?php if (!$fileManager): ?>
             <div class="alert alert-danger">
-                <i class="bi bi-exclamation-triangle"></i> Không thể kết nối đến Hostinger. 
-                Vui lòng kiểm tra cấu hình SFTP/FTP trong phần quản lý website.
+                <i class="bi bi-exclamation-triangle"></i> <strong>Không thể kết nối đến Hostinger.</strong><br>
+                <?php if (isset($connectionError)): ?>
+                    <small>Lỗi: <?php echo escape($connectionError); ?></small><br>
+                <?php endif; ?>
+                <small>Vui lòng kiểm tra:</small>
+                <ul class="mb-0">
+                    <li>Thông tin SFTP/FTP trong phần quản lý website (host, username, password, port)</li>
+                    <li>Đường dẫn (path) có đúng không</li>
+                    <li>PHP extension SSH2 (cho SFTP) hoặc FTP (cho FTP) đã được cài đặt chưa</li>
+                    <li>Xem error log để biết chi tiết lỗi</li>
+                </ul>
             </div>
         <?php else: ?>
+            <?php if (empty($files) && empty($relativePath)): ?>
+                <div class="alert alert-info">
+                    <i class="bi bi-info-circle"></i> Thư mục hiện tại trống hoặc không thể đọc được.
+                    <?php if (isset($connectionError)): ?>
+                        <br><small>Lỗi: <?php echo escape($connectionError); ?></small>
+                    <?php endif; ?>
+                </div>
+            <?php endif; ?>
             <!-- Breadcrumb -->
             <nav aria-label="breadcrumb">
                 <ol class="breadcrumb">
@@ -123,10 +146,17 @@ if ($fileManager) {
                         </tr>
                         <?php endif; ?>
                         
+                        <?php if (empty($files)): ?>
+                        <tr>
+                            <td colspan="5" class="text-center text-muted">
+                                <i class="bi bi-folder-x"></i> Không có file hoặc thư mục nào
+                            </td>
+                        </tr>
+                        <?php else: ?>
                         <?php foreach ($files as $file): ?>
                         <tr>
                             <td>
-                                <i class="bi bi-<?php echo $file['type'] == 'directory' ? 'folder' : 'file'; ?>"></i>
+                                <i class="bi bi-<?php echo $file['type'] == 'directory' ? 'folder-fill text-warning' : 'file-text'; ?>"></i>
                                 <?php if ($file['type'] == 'directory'): ?>
                                     <a href="?id=<?php echo $websiteId; ?>&tab=files&path=<?php echo urlencode($file['path']); ?>">
                                         <?php echo escape($file['name']); ?>
@@ -137,21 +167,22 @@ if ($fileManager) {
                                     </a>
                                 <?php endif; ?>
                             </td>
-                            <td><?php echo $file['type'] == 'file' ? $fileManager->formatBytes($file['size']) : '-'; ?></td>
+                            <td><?php echo $file['type'] == 'file' ? formatBytes($file['size']) : '-'; ?></td>
                             <td><?php echo date('d/m/Y H:i', $file['modified']); ?></td>
-                            <td><?php echo $file['permissions']; ?></td>
+                            <td><code><?php echo $file['permissions']; ?></code></td>
                             <td>
                                 <?php if ($file['type'] == 'file'): ?>
-                                    <a href="?id=<?php echo $websiteId; ?>&tab=files&action=edit&path=<?php echo urlencode($file['path']); ?>" class="btn btn-sm btn-info">
+                                    <a href="?id=<?php echo $websiteId; ?>&tab=files&action=edit&path=<?php echo urlencode($file['path']); ?>" class="btn btn-sm btn-info" title="Chỉnh sửa">
                                         <i class="bi bi-pencil"></i>
                                     </a>
                                 <?php endif; ?>
-                                <button class="btn btn-sm btn-danger" onclick="deleteItem('<?php echo urlencode($file['path']); ?>', '<?php echo escape($file['name']); ?>')">
+                                <button class="btn btn-sm btn-danger" onclick="deleteItem('<?php echo urlencode($file['path']); ?>', '<?php echo escape($file['name']); ?>')" title="Xóa">
                                     <i class="bi bi-trash"></i>
                                 </button>
                             </td>
                         </tr>
                         <?php endforeach; ?>
+                        <?php endif; ?>
                     </tbody>
                 </table>
             </div>

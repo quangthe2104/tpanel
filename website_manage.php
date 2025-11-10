@@ -27,19 +27,26 @@ include 'includes/header.php';
 // Get website statistics
 $fileManager = null;
 $diskUsage = 0;
+$connectionError = null;
 try {
+    if (empty($website['sftp_host']) || empty($website['sftp_username']) || empty($website['sftp_password'])) {
+        throw new Exception("Thông tin kết nối SFTP/FTP chưa được cấu hình đầy đủ");
+    }
+    
     $fileManager = new HostingerFileManager(
         $website['sftp_host'],
         $website['sftp_username'],
         $website['sftp_password'],
-        $website['path'],
-        $website['connection_type'] ?? 'sftp',
-        $website['sftp_port'] ?? 22
+        $website['path'] ?? '/',
+        $website['connection_type'] ?? 'ftp',
+        $website['sftp_port'] ?? ($website['connection_type'] === 'sftp' ? 22 : 21)
     );
     $diskUsage = $fileManager->getDirectorySize();
 } catch (Exception $e) {
     $diskUsage = 0;
     $fileManager = null;
+    $connectionError = $e->getMessage();
+    error_log("FileManager connection error: " . $connectionError);
 }
 
 $dbSize = 0;
@@ -119,13 +126,7 @@ $totalSize = $diskUsage + $dbSize;
 
 <!-- Tab Content -->
 <?php if ($tab == 'files' && $auth->canManageFiles($websiteId)): ?>
-    <?php 
-    if (!$fileManager) {
-        echo '<div class="alert alert-danger">Không thể kết nối đến Hostinger. Vui lòng kiểm tra cấu hình SFTP/FTP.</div>';
-    } else {
-        include 'includes/hostinger_file_manager_tab.php'; 
-    }
-    ?>
+    <?php include 'includes/hostinger_file_manager_tab.php'; ?>
 <?php elseif ($tab == 'database' && $auth->canManageDatabase($websiteId)): ?>
     <?php include 'includes/database_manager_tab.php'; ?>
 <?php elseif ($tab == 'backup' && $auth->canBackup($websiteId)): ?>

@@ -60,7 +60,24 @@ class HostingerFileManager {
     }
     
     public function setPath($path) {
-        $newPath = $this->basePath . '/' . ltrim($path, '/');
+        if (empty($path)) {
+            $this->currentPath = $this->basePath;
+            return true;
+        }
+        
+        // Remove leading slash and combine with base path
+        $path = ltrim($path, '/');
+        $newPath = $this->basePath . '/' . $path;
+        
+        // Normalize path (remove double slashes, etc.)
+        $newPath = str_replace(['//', '\\'], '/', $newPath);
+        $newPath = rtrim($newPath, '/');
+        
+        // Ensure it doesn't go below base path
+        if (strpos($newPath, $this->basePath) !== 0) {
+            $newPath = $this->basePath;
+        }
+        
         $this->currentPath = $newPath;
         return true;
     }
@@ -70,114 +87,339 @@ class HostingerFileManager {
     }
     
     public function getRelativePath() {
-        return str_replace($this->basePath, '', $this->currentPath);
+        $relative = str_replace($this->basePath, '', $this->currentPath);
+        // If paths are the same, return empty (root)
+        if (empty($relative) || $relative === $this->currentPath) {
+            return '';
+        }
+        // Remove leading slash and return
+        return ltrim($relative, '/');
     }
     
     public function listFiles($path = null) {
-        $targetPath = $path ? $this->basePath . '/' . ltrim($path, '/') : $this->currentPath;
-        $files = [];
-        
-        if ($this->connectionType === 'sftp') {
-            $files = $this->listFilesSFTP($targetPath);
-        } else {
-            $files = $this->listFilesFTP($targetPath);
-        }
-        
-        usort($files, function($a, $b) {
-            if ($a['type'] !== $b['type']) {
-                return $a['type'] === 'directory' ? -1 : 1;
+        try {
+            if ($path !== null) {
+                // Use the provided path
+                $targetPath = $this->basePath;
+                if (!empty($path)) {
+                    $targetPath .= '/' . ltrim($path, '/');
+                }
+            } else {
+                // Use current path
+                $targetPath = $this->currentPath;
             }
-            return strcmp($a['name'], $b['name']);
-        });
-        
-        return $files;
+            
+            // Normalize path
+            $targetPath = rtrim($targetPath, '/');
+            if (empty($targetPath)) {
+                $targetPath = $this->basePath;
+            }
+            
+            $files = [];
+            
+            if ($this->connectionType === 'sftp') {
+                if (!$this->sftpConnection) {
+                    error_log("SFTP: Connection not established");
+                    return [];
+                }
+                $files = $this->listFilesSFTP($targetPath);
+            } else {
+                if (!$this->ftpConnection) {
+                    error_log("FTP: Connection not established");
+                    return [];
+                }
+                $files = $this->listFilesFTP($targetPath);
+            }
+            
+            // Sort: directories first, then files, both alphabetically
+            usort($files, function($a, $b) {
+                if ($a['type'] !== $b['type']) {
+                    return $a['type'] === 'directory' ? -1 : 1;
+                }
+                return strcmp(strtolower($a['name']), strtolower($b['name']));
+            });
+            
+            return $files;
+        } catch (Exception $e) {
+            error_log("listFiles error: " . $e->getMessage());
+            return [];
+        }
     }
     
     private function listFilesSFTP($path) {
         $files = [];
-        $handle = opendir("ssh2.sftp://{$this->sftpConnection}$path");
         
-        if (!$handle) {
+        try {
+            // Normalize path
+            $path = rtrim($path, '/');
+            if (empty($path)) {
+                $path = $this->basePath;
+            }
+            
+            $sftpUrl = "ssh2.sftp://{$this->sftpConnection}$path";
+            $handle = @opendir($sftpUrl);
+            
+            if (!$handle) {
+                // Try to check if directory exists
+                $stat = @ssh2_sftp_stat($this->sftpConnection, $path);
+                if (!$stat) {
+                    error_log("SFTP: Cannot access path: $path");
+                    return [];
+                }
+                // If stat exists but cannot open, try again with base path
+                if ($path !== $this->basePath) {
+                    $handle = @opendir("ssh2.sftp://{$this->sftpConnection}" . $this->basePath);
+                    $path = $this->basePath;
+                }
+                if (!$handle) {
+                    error_log("SFTP: Cannot open directory: $path");
+                    return [];
+                }
+            }
+            
+            while (($file = readdir($handle)) !== false) {
+                if ($file === '.' || $file === '..') continue;
+                
+                $filePath = rtrim($path, '/') . '/' . $file;
+                $stat = @ssh2_sftp_stat($this->sftpConnection, $filePath);
+                
+                if (!$stat) {
+                    continue; // Skip files we can't stat
+                }
+                
+                $isDir = ($stat['mode'] & 0040000) === 0040000;
+                
+                $relativePath = str_replace($this->basePath, '', $filePath);
+                if (empty($relativePath) || $relativePath === $filePath) {
+                    $relativePath = '/' . $file;
+                }
+                $relativePath = ltrim($relativePath, '/');
+                
+                $files[] = [
+                    'name' => $file,
+                    'path' => $relativePath,
+                    'type' => $isDir ? 'directory' : 'file',
+                    'size' => $isDir ? 0 : ($stat['size'] ?? 0),
+                    'modified' => $stat['mtime'] ?? time(),
+                    'permissions' => isset($stat['mode']) ? substr(sprintf('%o', $stat['mode']), -4) : '0644'
+                ];
+            }
+            
+            closedir($handle);
+        } catch (Exception $e) {
+            error_log("SFTP listFiles error: " . $e->getMessage());
             return [];
         }
         
-        while (($file = readdir($handle)) !== false) {
-            if ($file === '.' || $file === '..') continue;
-            
-            $filePath = "$path/$file";
-            $stat = ssh2_sftp_stat($this->sftpConnection, $filePath);
-            
-            $isDir = ($stat['mode'] & 0040000) === 0040000;
-            
-            $files[] = [
-                'name' => $file,
-                'path' => str_replace($this->basePath, '', $filePath),
-                'type' => $isDir ? 'directory' : 'file',
-                'size' => $isDir ? 0 : ($stat['size'] ?? 0),
-                'modified' => $stat['mtime'] ?? time(),
-                'permissions' => substr(sprintf('%o', $stat['mode']), -4)
-            ];
-        }
-        
-        closedir($handle);
         return $files;
     }
     
     private function listFilesFTP($path) {
         $files = [];
-        $items = ftp_nlist($this->ftpConnection, $path);
         
-        if (!$items) {
+        try {
+            // Normalize path
+            $path = rtrim($path, '/');
+            if (empty($path)) {
+                $path = $this->basePath;
+            }
+            
+            // Try to change to directory first to verify it exists
+            $currentDir = @ftp_pwd($this->ftpConnection);
+            if (!@ftp_chdir($this->ftpConnection, $path)) {
+                // If path doesn't work, try base path
+                if ($path !== $this->basePath && @ftp_chdir($this->ftpConnection, $this->basePath)) {
+                    $path = $this->basePath;
+                } else {
+                    error_log("FTP: Cannot access path: $path");
+                    if ($currentDir) {
+                        @ftp_chdir($this->ftpConnection, $currentDir);
+                    }
+                    return [];
+                }
+            }
+            
+            // Use rawlist for more reliable directory listing
+            $items = @ftp_rawlist($this->ftpConnection, $path);
+            
+            if (!$items || !is_array($items)) {
+                // Fallback to nlist
+                $items = @ftp_nlist($this->ftpConnection, $path);
+                if (!$items) {
+                    error_log("FTP: Cannot list directory: $path");
+                    if ($currentDir) {
+                        @ftp_chdir($this->ftpConnection, $currentDir);
+                    }
+                    return [];
+                }
+            }
+            
+            foreach ($items as $item) {
+                $name = null;
+                $isDir = false;
+                $size = 0;
+                $modified = time();
+                
+                // Try to parse rawlist output (Unix format: drwxr-xr-x ...)
+                if (preg_match('/^([-d])([rwx-]{9})\s+.*?\s+(\d+)\s+(\w+\s+\d+\s+[\d:]+)\s+(.+)$/', $item, $matches)) {
+                    $isDir = ($matches[1] === 'd');
+                    $name = trim($matches[5]);
+                    $size = $isDir ? 0 : (int)$matches[3];
+                    
+                    // Try to parse date
+                    $dateStr = $matches[4];
+                    $modified = @strtotime($dateStr);
+                    if (!$modified) {
+                        $modified = time();
+                    }
+                } 
+                // Try alternative format
+                elseif (preg_match('/^([-d])([rwx-]+)\s+\d+\s+\d+\s+\d+\s+(\d+)\s+(\w+\s+\d+[\s:]\d+)\s+(.+)$/', $item, $matches)) {
+                    $isDir = ($matches[1] === 'd');
+                    $name = trim($matches[5]);
+                    $size = $isDir ? 0 : (int)$matches[3];
+                    $modified = @strtotime($matches[4]) ?: time();
+                }
+                // Fallback: treat as filename from nlist or simple path
+                else {
+                    $name = basename($item);
+                    if (empty($name)) {
+                        $name = trim($item);
+                    }
+                }
+                
+                if (empty($name) || $name === '.' || $name === '..') {
+                    continue;
+                }
+                
+                // Build full path
+                $filePath = rtrim($path, '/') . '/' . $name;
+                
+                // Verify directory/file status if not determined from rawlist
+                if (!isset($matches)) {
+                    $testSize = @ftp_size($this->ftpConnection, $filePath);
+                    if ($testSize === -1) {
+                        $isDir = true;
+                    } else {
+                        $isDir = false;
+                        $size = max(0, $testSize);
+                    }
+                    
+                    // Try to get modification time
+                    $testModified = @ftp_mdtm($this->ftpConnection, $filePath);
+                    if ($testModified > 0) {
+                        $modified = $testModified;
+                    }
+                }
+                
+                // Calculate relative path
+                $relativePath = str_replace($this->basePath, '', $filePath);
+                if (empty($relativePath) || $relativePath === $filePath || strpos($relativePath, '/') !== 0) {
+                    $relativePath = $name;
+                }
+                $relativePath = ltrim($relativePath, '/');
+                
+                $files[] = [
+                    'name' => $name,
+                    'path' => $relativePath,
+                    'type' => $isDir ? 'directory' : 'file',
+                    'size' => $isDir ? 0 : max(0, $size),
+                    'modified' => $modified,
+                    'permissions' => '0644'
+                ];
+            }
+            
+            // Restore original directory
+            if ($currentDir) {
+                @ftp_chdir($this->ftpConnection, $currentDir);
+            }
+        } catch (Exception $e) {
+            error_log("FTP listFiles error: " . $e->getMessage());
             return [];
-        }
-        
-        foreach ($items as $item) {
-            $name = basename($item);
-            if ($name === '.' || $name === '..') continue;
-            
-            $filePath = rtrim($path, '/') . '/' . $name;
-            $size = ftp_size($this->ftpConnection, $filePath);
-            $isDir = $size === -1;
-            $modified = ftp_mdtm($this->ftpConnection, $filePath);
-            
-            $files[] = [
-                'name' => $name,
-                'path' => str_replace($this->basePath, '', $filePath),
-                'type' => $isDir ? 'directory' : 'file',
-                'size' => $isDir ? 0 : $size,
-                'modified' => $modified ? $modified : time(),
-                'permissions' => '0644'
-            ];
         }
         
         return $files;
     }
     
     public function createFile($filename, $content = '') {
-        $filePath = $this->currentPath . '/' . basename($filename);
-        
-        if ($this->connectionType === 'sftp') {
-            $stream = fopen("ssh2.sftp://{$this->sftpConnection}$filePath", 'w');
-            if (!$stream) return false;
-            fwrite($stream, $content);
-            fclose($stream);
-            return true;
-        } else {
-            $tempFile = tempnam(sys_get_temp_dir(), 'ftp_');
-            file_put_contents($tempFile, $content);
-            $result = ftp_put($this->ftpConnection, $filePath, $tempFile, FTP_BINARY);
-            unlink($tempFile);
-            return $result;
+        try {
+            $filename = basename($filename);
+            if (empty($filename)) {
+                return false;
+            }
+            
+            $filePath = rtrim($this->currentPath, '/') . '/' . $filename;
+            
+            if ($this->connectionType === 'sftp') {
+                if (!$this->sftpConnection) {
+                    error_log("SFTP: Connection not established for createFile");
+                    return false;
+                }
+                $stream = @fopen("ssh2.sftp://{$this->sftpConnection}$filePath", 'w');
+                if (!$stream) {
+                    error_log("SFTP: Cannot create file: $filePath");
+                    return false;
+                }
+                fwrite($stream, $content);
+                fclose($stream);
+                return true;
+            } else {
+                if (!$this->ftpConnection) {
+                    error_log("FTP: Connection not established for createFile");
+                    return false;
+                }
+                $tempFile = @tempnam(sys_get_temp_dir(), 'ftp_');
+                if (!$tempFile) {
+                    error_log("FTP: Cannot create temp file");
+                    return false;
+                }
+                file_put_contents($tempFile, $content);
+                $result = @ftp_put($this->ftpConnection, $filePath, $tempFile, FTP_BINARY);
+                @unlink($tempFile);
+                if (!$result) {
+                    error_log("FTP: Cannot upload file: $filePath");
+                }
+                return $result;
+            }
+        } catch (Exception $e) {
+            error_log("createFile error: " . $e->getMessage());
+            return false;
         }
     }
     
     public function createDirectory($dirname) {
-        $dirPath = $this->currentPath . '/' . basename($dirname);
-        
-        if ($this->connectionType === 'sftp') {
-            return ssh2_sftp_mkdir($this->sftpConnection, $dirPath, 0755, true);
-        } else {
-            return ftp_mkdir($this->ftpConnection, $dirPath);
+        try {
+            $dirname = basename($dirname);
+            if (empty($dirname)) {
+                return false;
+            }
+            
+            $dirPath = rtrim($this->currentPath, '/') . '/' . $dirname;
+            
+            if ($this->connectionType === 'sftp') {
+                if (!$this->sftpConnection) {
+                    error_log("SFTP: Connection not established for createDirectory");
+                    return false;
+                }
+                $result = @ssh2_sftp_mkdir($this->sftpConnection, $dirPath, 0755, true);
+                if (!$result) {
+                    error_log("SFTP: Cannot create directory: $dirPath");
+                }
+                return $result;
+            } else {
+                if (!$this->ftpConnection) {
+                    error_log("FTP: Connection not established for createDirectory");
+                    return false;
+                }
+                $result = @ftp_mkdir($this->ftpConnection, $dirPath);
+                if (!$result) {
+                    error_log("FTP: Cannot create directory: $dirPath");
+                }
+                return $result;
+            }
+        } catch (Exception $e) {
+            error_log("createDirectory error: " . $e->getMessage());
+            return false;
         }
     }
     
