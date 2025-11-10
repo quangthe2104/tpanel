@@ -53,3 +53,6 @@ sessions/
 
 # Uploaded files
 uploads/
+
+# Installation files (after installation)
+install.php.bak

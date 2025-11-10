@@ -225,7 +225,22 @@ Nếu gặp lỗi "git is not recognized", xem file **`HUONG_DAN_CAI_GIT.md`** �
 
 Hoặc chạy file `kiem_tra_git.bat` để kiểm tra Git đã cài chưa.
 
-## Cài đặt từ GitHub
+## Cài đặt trên Hostinger Hosting
+
+Xem file **`HUONG_DAN_CAI_DAT_HOSTING.md`** để biết cách:
+- Upload code lên Hostinger
+- Tạo database trên Hostinger
+- Chạy cài đặt qua trình duyệt
+- Cấu hình và bảo mật
+
+**Tóm tắt nhanh:**
+1. Upload code lên `public_html`
+2. Tạo database trong hPanel
+3. Tạo file `config/database.php` từ `.example`
+4. Truy cập `https://yourdomain.com/install.php` qua trình duyệt
+5. Xóa file `install.php` sau khi cài xong
+
+## Cài đặt từ GitHub (Local Development)
 
 ```bash
 # Clone repository

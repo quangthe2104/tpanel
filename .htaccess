@@ -1,0 +1,38 @@
+# Tpanel .htaccess
+
+# Prevent directory listing
+Options -Indexes
+
+# Protect config files
+<FilesMatch "^(database|hostinger)\.php$">
+    Order Deny,Allow
+    Deny from all
+</FilesMatch>
+
+# Protect install.php after installation
+# Uncomment the line below after installation:
+# <FilesMatch "^install\.php$">
+#     Order Deny,Allow
+#     Deny from all
+# </FilesMatch>
+
+# Protect backups directory
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteRule ^backups/ - [F,L]
+</IfModule>
+
+# PHP Settings
+<IfModule mod_php7.c>
+    php_value upload_max_filesize 100M
+    php_value post_max_size 100M
+    php_value max_execution_time 300
+    php_value max_input_time 300
+</IfModule>
+
+# Security Headers
+<IfModule mod_headers.c>
+    Header set X-Content-Type-Options "nosniff"
+    Header set X-Frame-Options "SAMEORIGIN"
+    Header set X-XSS-Protection "1; mode=block"
+</IfModule>
