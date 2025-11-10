@@ -4,19 +4,11 @@
  * Hỗ trợ kết nối với Hostinger API và SFTP/FTP
  */
 class HostingerAPI {
-    private $apiUrl;
-    private $apiKey;
-    private $apiSecret;
     private $sftpConnection = null;
     
-    public function __construct($config = null) {
-        if ($config === null) {
-            $config = require __DIR__ . '/../config/hostinger.php';
-        }
-        
-        $this->apiUrl = $config['api_url'] ?? '';
-        $this->apiKey = $config['api_key'] ?? '';
-        $this->apiSecret = $config['api_secret'] ?? '';
+    public function __construct() {
+        // Class này chỉ dùng để kết nối SFTP/FTP
+        // API methods sẽ được thêm khi Hostinger cung cấp API chính thức
     }
     
     /**
@@ -62,61 +54,5 @@ class HostingerAPI {
         return $connection;
     }
     
-    /**
-     * Gọi Hostinger API (nếu có)
-     */
-    public function apiCall($endpoint, $method = 'GET', $data = []) {
-        if (empty($this->apiKey) || empty($this->apiUrl)) {
-            throw new Exception("Hostinger API chưa được cấu hình");
-        }
-        
-        $url = rtrim($this->apiUrl, '/') . '/' . ltrim($endpoint, '/');
-        
-        $ch = curl_init($url);
-        curl_setopt_array($ch, [
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_CUSTOMREQUEST => $method,
-            CURLOPT_HTTPHEADER => [
-                'Authorization: Bearer ' . $this->apiKey,
-                'Content-Type: application/json',
-            ],
-        ]);
-        
-        if ($method === 'POST' || $method === 'PUT') {
-            curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
-        }
-        
-        $response = curl_exec($ch);
-        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        curl_close($ch);
-        
-        if ($httpCode >= 400) {
-            throw new Exception("API Error: HTTP $httpCode - $response");
-        }
-        
-        return json_decode($response, true);
-    }
-    
-    /**
-     * Lấy danh sách website từ Hostinger API
-     */
-    public function getWebsites() {
-        try {
-            return $this->apiCall('/websites');
-        } catch (Exception $e) {
-            // Nếu API không khả dụng, trả về empty array
-            return [];
-        }
-    }
-    
-    /**
-     * Lấy thông tin website cụ thể
-     */
-    public function getWebsiteInfo($websiteId) {
-        try {
-            return $this->apiCall("/websites/$websiteId");
-        } catch (Exception $e) {
-            return null;
-        }
-    }
+    // API methods sẽ được thêm khi Hostinger cung cấp API chính thức
 }

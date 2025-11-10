@@ -13,7 +13,7 @@ date_default_timezone_set('Asia/Ho_Chi_Minh');
 
 // Error reporting (disable in production)
 error_reporting(E_ALL);
-ini_set('display_errors', 1);
+ini_set('display_errors', 0); // Set to 0 in production
 
 // Backup settings
 define('BACKUP_DIR', ROOT_PATH . '/backups/');

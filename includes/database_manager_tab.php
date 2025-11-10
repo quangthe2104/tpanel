@@ -10,17 +10,25 @@ try {
     $action = $_GET['action'] ?? 'tables';
     $tableName = $_GET['table'] ?? '';
     
-    // Handle query execution
+    // Handle query execution (chỉ SELECT)
     if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['execute_query'])) {
-        $query = $_POST['query'];
-        try {
-            $result = $dbManager->executeQuery($query);
-            $auth->logActivity($auth->getUserId(), $websiteId, 'database_query', 'SQL query executed');
-            $queryResult = $result;
-            $querySuccess = true;
-        } catch (Exception $e) {
-            $queryError = $e->getMessage();
+        $query = trim($_POST['query']);
+        if (empty($query)) {
+            $queryError = "Query không được để trống";
             $querySuccess = false;
+        } elseif (stripos($query, 'SELECT') !== 0) {
+            $queryError = "Chỉ cho phép thực thi SELECT queries để bảo mật";
+            $querySuccess = false;
+        } else {
+            try {
+                $result = $dbManager->executeQuery($query);
+                $auth->logActivity($auth->getUserId(), $websiteId, 'database_query', 'SQL SELECT query executed');
+                $queryResult = $result;
+                $querySuccess = true;
+            } catch (Exception $e) {
+                $queryError = $e->getMessage();
+                $querySuccess = false;
+            }
         }
     }
     
@@ -189,7 +197,9 @@ try {
         <div class="card-body">
             <form method="POST">
                 <div class="mb-3">
+                    <label class="form-label">SQL Query (Chỉ SELECT)</label>
                     <textarea name="query" class="form-control" rows="5" placeholder="SELECT * FROM table_name LIMIT 10;" required><?php echo isset($_POST['query']) ? escape($_POST['query']) : ''; ?></textarea>
+                    <small class="text-muted">Chỉ cho phép SELECT queries để bảo mật</small>
                 </div>
                 <button type="submit" name="execute_query" class="btn btn-primary">
                     <i class="bi bi-play"></i> Thực thi

@@ -57,16 +57,6 @@ if ($website['db_name']) {
     }
 }
 $totalSize = $diskUsage + $dbSize;
-
-// Helper function for formatting bytes
-function formatBytesSafe($bytes, $precision = 2) {
-    $units = ['B', 'KB', 'MB', 'GB', 'TB'];
-    $bytes = max($bytes, 0);
-    $pow = floor(($bytes ? log($bytes) : 0) / log(1024));
-    $pow = min($pow, count($units) - 1);
-    $bytes /= pow(1024, $pow);
-    return round($bytes, $precision) . ' ' . $units[$pow];
-}
 ?>
 
 <div class="row mb-4">
@@ -82,7 +72,7 @@ function formatBytesSafe($bytes, $precision = 2) {
         <div class="card">
             <div class="card-body">
                 <h6 class="text-muted">Dung lượng Files</h6>
-                <h4><?php echo formatBytesSafe($diskUsage); ?></h4>
+                <h4><?php echo formatBytes($diskUsage); ?></h4>
             </div>
         </div>
     </div>
@@ -90,7 +80,7 @@ function formatBytesSafe($bytes, $precision = 2) {
         <div class="card">
             <div class="card-body">
                 <h6 class="text-muted">Dung lượng Database</h6>
-                <h4><?php echo formatBytesSafe($dbSize); ?></h4>
+                <h4><?php echo formatBytes($dbSize); ?></h4>
             </div>
         </div>
     </div>
@@ -98,7 +88,7 @@ function formatBytesSafe($bytes, $precision = 2) {
         <div class="card">
             <div class="card-body">
                 <h6 class="text-muted">Tổng dung lượng</h6>
-                <h4><?php echo formatBytesSafe($totalSize); ?></h4>
+                <h4><?php echo formatBytes($totalSize); ?></h4>
             </div>
         </div>
     </div>

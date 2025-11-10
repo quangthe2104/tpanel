@@ -4,6 +4,11 @@
 config/database.php
 config/hostinger.php
 
+# Archive files
+*.zip
+*.rar
+*.7z
+
 # Backups
 backups/
 *.zip

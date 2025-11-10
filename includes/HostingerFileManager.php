@@ -1,6 +1,4 @@
 <?php
-require_once __DIR__ . '/HostingerAPI.php';
-
 /**
  * File Manager sử dụng SFTP/FTP để kết nối với Hostinger
  */
@@ -10,21 +8,55 @@ class HostingerFileManager {
     private $connectionType; // 'sftp' or 'ftp'
     private $basePath;
     private $currentPath;
-    private $hostingerAPI;
     
     public function __construct($host, $username, $password, $basePath = '/', $connectionType = 'sftp', $port = null) {
-        $this->hostingerAPI = new HostingerAPI();
         $this->basePath = rtrim($basePath, '/');
         $this->currentPath = $this->basePath;
         $this->connectionType = $connectionType;
         
         if ($connectionType === 'sftp') {
             $port = $port ?? 22;
-            $this->sftpConnection = $this->hostingerAPI->connectSFTP($host, $username, $password, $port);
+            $this->sftpConnection = $this->connectSFTP($host, $username, $password, $port);
         } else {
             $port = $port ?? 21;
-            $this->ftpConnection = $this->hostingerAPI->connectFTP($host, $username, $password, $port);
+            $this->ftpConnection = $this->connectFTP($host, $username, $password, $port);
         }
+    }
+    
+    private function connectSFTP($host, $username, $password, $port = 22) {
+        if (!extension_loaded('ssh2')) {
+            throw new Exception("SSH2 extension chưa được cài đặt. Vui lòng cài đặt php-ssh2 extension.");
+        }
+        
+        $connection = ssh2_connect($host, $port);
+        if (!$connection) {
+            throw new Exception("Không thể kết nối đến SFTP server: $host:$port");
+        }
+        
+        if (!ssh2_auth_password($connection, $username, $password)) {
+            throw new Exception("Xác thực SFTP thất bại");
+        }
+        
+        return ssh2_sftp($connection);
+    }
+    
+    private function connectFTP($host, $username, $password, $port = 21, $ssl = false) {
+        if ($ssl) {
+            $connection = ftp_ssl_connect($host, $port);
+        } else {
+            $connection = ftp_connect($host, $port);
+        }
+        
+        if (!$connection) {
+            throw new Exception("Không thể kết nối đến FTP server: $host:$port");
+        }
+        
+        if (!ftp_login($connection, $username, $password)) {
+            throw new Exception("Xác thực FTP thất bại");
+        }
+        
+        ftp_pasv($connection, true);
+        return $connection;
     }
     
     public function setPath($path) {

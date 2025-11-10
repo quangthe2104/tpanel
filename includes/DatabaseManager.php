@@ -65,14 +65,15 @@ class DatabaseManager {
     
     public function executeQuery($query) {
         try {
+            // Chỉ cho phép SELECT queries để bảo mật
+            $trimmedQuery = trim($query);
+            if (stripos($trimmedQuery, 'SELECT') !== 0) {
+                throw new Exception("Chỉ cho phép thực thi SELECT queries");
+            }
+            
             $stmt = $this->connection->prepare($query);
             $stmt->execute();
-            
-            if (stripos($query, 'SELECT') === 0) {
-                return $stmt->fetchAll();
-            } else {
-                return ['affected_rows' => $stmt->rowCount()];
-            }
+            return $stmt->fetchAll();
         } catch (PDOException $e) {
             throw new Exception("Query failed: " . $e->getMessage());
         }
