@@ -16,6 +16,12 @@ Options -Indexes
 #     Deny from all
 # </FilesMatch>
 
+# Protect debug.php (uncomment to disable)
+# <FilesMatch "^debug\.php$">
+#     Order Deny,Allow
+#     Deny from all
+# </FilesMatch>
+
 # Protect backups directory
 <IfModule mod_rewrite.c>
     RewriteEngine On

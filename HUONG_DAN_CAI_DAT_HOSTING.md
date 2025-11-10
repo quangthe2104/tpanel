@@ -126,6 +126,50 @@ Deny from all
 - Kiểm tra quyền thư mục `backups/`
 - Set permissions 755 hoặc 777
 
+### Lỗi HTTP 500 (Internal Server Error)
+
+**Cách debug nhanh:**
+
+1. **Truy cập file debug:**
+   - Upload file `debug.php` lên server (nếu chưa có)
+   - Truy cập: `https://yourdomain.com/debug.php`
+   - File sẽ hiển thị tất cả thông tin lỗi
+
+2. **Kiểm tra PHP Error Logs:**
+   - Vào hPanel → **Advanced** → **Error Log**
+   - Hoặc xem file `error_log` trong thư mục website
+
+3. **Các nguyên nhân thường gặp:**
+   - ❌ File `config/database.php` chưa được tạo
+   - ❌ Thông tin database không đúng
+   - ❌ Database chưa được tạo
+   - ❌ Thiếu PHP extensions (PDO, PDO_MySQL)
+   - ❌ Lỗi syntax trong code
+   - ❌ File permissions không đúng
+   - ❌ File .htaccess có lỗi
+
+4. **Giải pháp:**
+   ```bash
+   # Kiểm tra file config
+   ls -la config/database.php
+   
+   # Kiểm tra PHP version
+   php -v
+   
+   # Kiểm tra PHP extensions
+   php -m | grep pdo
+   
+   # Kiểm tra error logs
+   tail -f error_log
+   ```
+
+5. **Tạm thời bật error display** (chỉ để debug):
+   - Sửa `config/config.php`:
+     ```php
+     ini_set('display_errors', 1);
+     ```
+   - **NHỚ TẮT LẠI** sau khi fix xong!
+
 ## Deploy Code Mới (Quan Trọng)
 
 Khi có code mới trên GitHub và muốn cập nhật lên server:
