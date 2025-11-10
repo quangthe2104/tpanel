@@ -5,6 +5,22 @@
 1. Upload tất cả files của Tpanel lên thư mục `public_html` hoặc thư mục website của bạn
 2. Đảm bảo cấu trúc thư mục được giữ nguyên
 
+## Lưu ý về API Key
+
+**QUAN TRỌNG**: Hiện tại hệ thống **KHÔNG CẦN API KEY** để hoạt động!
+
+Hệ thống Tpanel sử dụng **SFTP/FTP trực tiếp** để kết nối với Hostinger, không cần API key. Thông tin SFTP/FTP được cấu hình trong database khi bạn thêm website.
+
+### Nếu Hostinger có API trong tương lai:
+
+1. Tạo file `config/hostinger.php` từ `config/hostinger.php.example`
+2. Điền API key vào file đó
+3. API key sẽ được sử dụng cho các tính năng nâng cao (nếu có)
+
+**Hiện tại bạn chỉ cần:**
+- Thông tin SFTP/FTP từ Hostinger (khi thêm website)
+- Thông tin MySQL database (khi thêm website)
+
 ## Bước 2: Cấu hình Database
 
 ### Tạo Database trên Hostinger
@@ -110,14 +126,40 @@ Deny from all
 - Kiểm tra quyền thư mục `backups/`
 - Set permissions 755 hoặc 777
 
+## Deploy Code Mới (Quan Trọng)
+
+Khi có code mới trên GitHub và muốn cập nhật lên server:
+
+### Cách An Toàn (Không Ghi Đè File Config):
+
+1. **Backup file config trước**:
+   ```bash
+   cp config/database.php config/database.php.backup
+   ```
+
+2. **Pull code mới**:
+   ```bash
+   git pull origin main
+   ```
+
+3. **Restore file config**:
+   ```bash
+   mv config/database.php.backup config/database.php
+   ```
+
+**Lưu ý**: File `config/database.php` đã được loại trừ khỏi Git (có trong .gitignore), nên thường sẽ không bị ghi đè. Nhưng nên backup để an toàn.
+
+Xem file **`HUONG_DAN_DEPLOY_AN_TOAN.md`** để biết chi tiết.
+
 ## Lưu ý bảo mật
 
 1. ✅ Xóa file `install.php` sau khi cài đặt
 2. ✅ Đổi mật khẩu admin ngay sau khi đăng nhập
-3. ✅ Không commit file `config/database.php` lên Git
+3. ✅ **KHÔNG commit** file `config/database.php` lên Git (đã có trong .gitignore)
 4. ✅ Sử dụng HTTPS (SSL) cho website
 5. ✅ Giới hạn quyền truy cập vào thư mục `backups/`
 6. ✅ Cập nhật code thường xuyên
+7. ✅ Backup file config trước khi deploy code mới
 
 ## Cấu trúc thư mục trên Hostinger
 

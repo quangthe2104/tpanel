@@ -1,0 +1,2 @@
+# File này đảm bảo thư mục config được track trong Git
+# Các file config thực tế (database.php, hostinger.php) đã được ignore

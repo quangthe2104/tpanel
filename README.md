@@ -112,7 +112,13 @@ return [
 ```
 
 #### Cấu hình Hostinger API (Tùy chọn - `config/hostinger.php`)
-Nếu Hostinger có API, bạn có thể cấu hình ở đây. Hiện tại hệ thống sử dụng SFTP/FTP.
+**LƯU Ý**: Hiện tại **KHÔNG CẦN** cấu hình API key!
+
+Hệ thống hoạt động qua SFTP/FTP được cấu hình trực tiếp trong database khi thêm website. File `config/hostinger.php` chỉ dự phòng cho tương lai nếu Hostinger cung cấp API.
+
+**Bạn chỉ cần:**
+- Thông tin SFTP/FTP từ Hostinger (khi thêm website trong admin panel)
+- Thông tin MySQL database (khi thêm website)
 
 ### 5. Thêm Website
 
@@ -268,6 +274,32 @@ Mọi đóng góp đều được chào đón! Vui lòng:
 3. Commit changes (`git commit -m 'Add some AmazingFeature'`)
 4. Push to branch (`git push origin feature/AmazingFeature`)
 5. Mở Pull Request
+
+## Deploy Code Mới Lên Server
+
+Khi có code mới trên GitHub và muốn cập nhật lên server:
+
+### ⚠️ Quan Trọng: Bảo Vệ File Config
+
+File `config/database.php` đã được loại trừ khỏi Git (có trong `.gitignore`), nên sẽ **KHÔNG bị ghi đè** khi pull code.
+
+**Cách deploy an toàn:**
+```bash
+# Backup (để an toàn)
+cp config/database.php config/database.php.backup
+
+# Pull code mới
+git pull origin main
+
+# Restore nếu cần (thường không cần vì file đã được ignore)
+# mv config/database.php.backup config/database.php
+```
+
+Xem file **`HUONG_DAN_DEPLOY_AN_TOAN.md`** để biết chi tiết về:
+- Cách deploy an toàn
+- Script tự động backup/restore
+- Git hooks để tự động bảo vệ
+- Troubleshooting
 
 ## License
 

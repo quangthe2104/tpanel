@@ -1,8 +1,14 @@
 # Tpanel .gitignore
 
-# Config files with sensitive data
+# Config files with sensitive data (QUAN TRỌNG: Không commit các file này!)
 config/database.php
 config/hostinger.php
+
+# Backup files
+*.backup
+*.bak
+config/*.backup
+config/*.bak
 
 # Archive files
 *.zip
