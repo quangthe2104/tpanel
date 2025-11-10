@@ -216,6 +216,44 @@ Nếu gặp vấn đề, vui lòng kiểm tra:
 2. PHP error logs
 3. Cấu hình SFTP/FTP từ Hostinger
 
+## Cài đặt Git (Nếu chưa có)
+
+Nếu gặp lỗi "git is not recognized", xem file **`HUONG_DAN_CAI_GIT.md`** để biết cách:
+- Cài đặt Git trên Windows
+- Thêm Git vào PATH
+- Cấu hình Git
+
+Hoặc chạy file `kiem_tra_git.bat` để kiểm tra Git đã cài chưa.
+
+## Cài đặt từ GitHub
+
+```bash
+# Clone repository
+git clone https://github.com/quangthe2104/tpanel.git
+cd tpanel
+
+# Copy file cấu hình mẫu
+copy config\database.php.example config\database.php
+copy config\hostinger.php.example config\hostinger.php
+
+# Chỉnh sửa cấu hình
+# Sửa config/database.php với thông tin MySQL của bạn
+
+# Chạy cài đặt
+install.bat
+# hoặc
+php install.php
+```
+
+## Đóng góp
+
+Mọi đóng góp đều được chào đón! Vui lòng:
+1. Fork repository
+2. Tạo branch mới (`git checkout -b feature/AmazingFeature`)
+3. Commit changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to branch (`git push origin feature/AmazingFeature`)
+5. Mở Pull Request
+
 ## License
 
 MIT License

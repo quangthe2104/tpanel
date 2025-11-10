@@ -1,0 +1,50 @@
+# Tpanel .gitignore
+
+# Config files with sensitive data
+config/database.php
+config/hostinger.php
+
+# Backups
+backups/
+*.zip
+*.sql
+*.tar.gz
+
+# Logs
+*.log
+logs/
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Temporary files
+*.tmp
+*.temp
+*.cache
+
+# PHP
+vendor/
+composer.lock
+
+# Node modules (if any)
+node_modules/
+package-lock.json
+
+# Environment files
+.env
+.env.local
+
+# Session files
+sessions/
+
+# Uploaded files
+uploads/
