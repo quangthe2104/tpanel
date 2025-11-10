@@ -65,6 +65,7 @@ try {
     
     echo "\nĐang import các bảng...\n";
     $count = 0;
+    $adminCreated = false;
     foreach ($statements as $statement) {
         if (empty(trim($statement))) continue;
         
@@ -76,12 +77,36 @@ try {
             if (preg_match('/CREATE TABLE.*?`?(\w+)`?/i', $statement, $matches)) {
                 echo "  ✓ Tạo bảng: {$matches[1]}\n";
             }
+            
+            // Check if admin user was inserted
+            if (stripos($statement, "INSERT INTO `users`") !== false && stripos($statement, "'admin'") !== false) {
+                $adminCreated = true;
+            }
         } catch (PDOException $e) {
-            // Ignore "table already exists" errors
-            if (strpos($e->getMessage(), 'already exists') === false) {
+            // Ignore "table already exists" and "duplicate entry" errors
+            if (strpos($e->getMessage(), 'already exists') === false && strpos($e->getMessage(), 'Duplicate entry') === false) {
                 echo "  ⚠ Lỗi: " . $e->getMessage() . "\n";
             }
         }
+    }
+    
+    // Ensure admin user exists with correct password
+    try {
+        $checkAdmin = $pdo->query("SELECT id FROM users WHERE username = 'admin'")->fetch();
+        if (!$checkAdmin) {
+            $adminPassword = password_hash('admin123', PASSWORD_DEFAULT);
+            $pdo->exec("INSERT INTO `users` (`username`, `email`, `password`, `full_name`, `role`) VALUES ('admin', 'admin@tpanel.local', '$adminPassword', 'Administrator', 'admin')");
+            echo "  ✓ Tạo user admin mặc định\n";
+            $adminCreated = true;
+        } else {
+            // Update password to ensure it's correct
+            $adminPassword = password_hash('admin123', PASSWORD_DEFAULT);
+            $pdo->exec("UPDATE users SET password = '$adminPassword' WHERE username = 'admin'");
+            echo "  ✓ Cập nhật password admin\n";
+        }
+    } catch (PDOException $e) {
+        echo "  ⚠ Không thể tạo/cập nhật user admin: " . $e->getMessage() . "\n";
+        echo "  → Vui lòng sử dụng reset_admin.php để tạo/reset password\n";
     }
     
     echo "\n✓ Đã import $count statements thành công\n";
