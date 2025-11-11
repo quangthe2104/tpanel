@@ -56,30 +56,17 @@ include 'includes/header.php';
                     </p>
                     
                     <?php
-                    // Get website stats
-                    try {
-                        require_once 'includes/HostingerFileManager.php';
-                        $fileManager = new HostingerFileManager(
-                            $website['sftp_host'] ?? '',
-                            $website['sftp_username'] ?? '',
-                            $website['sftp_password'] ?? '',
-                            $website['path'],
-                            $website['connection_type'] ?? 'sftp',
-                            $website['sftp_port'] ?? 22
-                        );
-                        $diskUsage = $fileManager->getDirectorySize();
-                        $diskUsageFormatted = $fileManager->formatBytes($diskUsage);
-                    } catch (Exception $e) {
-                        $diskUsageFormatted = 'N/A';
-                    }
+                    // Skip disk usage calculation in list view to avoid timeout
+                    // Disk usage will be shown in website detail page
+                    $diskUsageFormatted = 'Xem chi tiết';
                     ?>
                     
                     <div class="mb-3">
-                        <small class="text-muted">Dung lượng sử dụng:</small>
+                        <small class="text-muted">Dung lượng:</small>
                         <div class="progress" style="height: 8px;">
-                            <div class="progress-bar" role="progressbar" style="width: 100%"></div>
+                            <div class="progress-bar bg-info" role="progressbar" style="width: 100%"></div>
                         </div>
-                        <small><?php echo $diskUsageFormatted; ?></small>
+                        <small class="text-muted"><?php echo $diskUsageFormatted; ?></small>
                     </div>
                     
                     <div class="d-grid gap-2">

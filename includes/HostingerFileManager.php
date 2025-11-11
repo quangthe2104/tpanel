@@ -45,12 +45,33 @@ class HostingerFileManager {
             throw new Exception("SSH2 extension chưa được cài đặt. Vui lòng cài đặt php-ssh2 extension.");
         }
         
-        $connection = ssh2_connect($host, $port);
+        // Set timeout for SFTP connection
+        $methods = [
+            'kex' => 'diffie-hellman-group1-sha1,diffie-hellman-group14-sha1',
+            'client_to_server' => [
+                'crypt' => 'aes256-ctr,aes192-ctr,aes128-ctr',
+                'comp' => 'none'
+            ],
+            'server_to_client' => [
+                'crypt' => 'aes256-ctr,aes192-ctr,aes128-ctr',
+                'comp' => 'none'
+            ]
+        ];
+        
+        $connection = @ssh2_connect($host, $port, $methods, [
+            'disconnect' => function($reason, $message) {
+                error_log("SFTP disconnect: $reason - $message");
+            }
+        ]);
+        
         if (!$connection) {
             throw new Exception("Không thể kết nối đến SFTP server: $host:$port");
         }
         
-        if (!ssh2_auth_password($connection, $username, $password)) {
+        // Set timeout
+        @stream_set_timeout($connection, 10);
+        
+        if (!@ssh2_auth_password($connection, $username, $password)) {
             throw new Exception("Xác thực SFTP thất bại");
         }
         
@@ -58,21 +79,28 @@ class HostingerFileManager {
     }
     
     private function connectFTP($host, $username, $password, $port = 21, $ssl = false) {
+        // Set timeout for FTP connection
+        $timeout = 10; // 10 seconds
+        
         if ($ssl) {
-            $connection = ftp_ssl_connect($host, $port);
+            $connection = @ftp_ssl_connect($host, $port, $timeout);
         } else {
-            $connection = ftp_connect($host, $port);
+            $connection = @ftp_connect($host, $port, $timeout);
         }
         
         if (!$connection) {
-            throw new Exception("Không thể kết nối đến FTP server: $host:$port");
+            throw new Exception("Không thể kết nối đến FTP server: $host:$port (timeout: {$timeout}s)");
         }
         
-        if (!ftp_login($connection, $username, $password)) {
+        // Set timeout for FTP operations
+        @ftp_set_option($connection, FTP_TIMEOUT_SEC, $timeout);
+        
+        if (!@ftp_login($connection, $username, $password)) {
+            @ftp_close($connection);
             throw new Exception("Xác thực FTP thất bại");
         }
         
-        ftp_pasv($connection, true);
+        @ftp_pasv($connection, true);
         return $connection;
     }
     
