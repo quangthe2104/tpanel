@@ -3,6 +3,7 @@
 # Config files with sensitive data (QUAN TRỌNG: Không commit các file này!)
 config/database.php
 config/hostinger.php
+config/config.php
 
 # Backup files
 *.backup

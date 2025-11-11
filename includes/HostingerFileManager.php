@@ -254,11 +254,13 @@ class HostingerFileManager {
                 }
             }
             
+            $parsedFromRawlist = false;
             foreach ($items as $item) {
                 $name = null;
                 $isDir = false;
                 $size = 0;
                 $modified = time();
+                $parsedFromRawlist = false;
                 
                 // Try to parse rawlist output (Unix format: drwxr-xr-x ...)
                 if (preg_match('/^([-d])([rwx-]{9})\s+.*?\s+(\d+)\s+(\w+\s+\d+\s+[\d:]+)\s+(.+)$/', $item, $matches)) {
@@ -272,13 +274,15 @@ class HostingerFileManager {
                     if (!$modified) {
                         $modified = time();
                     }
+                    $parsedFromRawlist = true;
                 } 
                 // Try alternative format
                 elseif (preg_match('/^([-d])([rwx-]+)\s+\d+\s+\d+\s+\d+\s+(\d+)\s+(\w+\s+\d+[\s:]\d+)\s+(.+)$/', $item, $matches)) {
                     $isDir = ($matches[1] === 'd');
-                    $name = trim($matches[5]);
+                    $name = trim($matches[6]);
                     $size = $isDir ? 0 : (int)$matches[3];
                     $modified = @strtotime($matches[4]) ?: time();
+                    $parsedFromRawlist = true;
                 }
                 // Fallback: treat as filename from nlist or simple path
                 else {
@@ -296,7 +300,7 @@ class HostingerFileManager {
                 $filePath = rtrim($path, '/') . '/' . $name;
                 
                 // Verify directory/file status if not determined from rawlist
-                if (!isset($matches)) {
+                if (!$parsedFromRawlist) {
                     $testSize = @ftp_size($this->ftpConnection, $filePath);
                     if ($testSize === -1) {
                         $isDir = true;

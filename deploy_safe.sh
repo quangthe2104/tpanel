@@ -16,6 +16,11 @@ if [ -f "config/hostinger.php" ]; then
     echo "✓ Đã backup config/hostinger.php"
 fi
 
+if [ -f "config/config.php" ]; then
+    cp config/config.php config/config.php.backup
+    echo "✓ Đã backup config/config.php"
+fi
+
 # Pull code mới
 echo ""
 echo "Đang pull code mới từ Git..."
@@ -32,6 +37,11 @@ fi
 if [ -f "config/hostinger.php.backup" ]; then
     mv config/hostinger.php.backup config/hostinger.php
     echo "✓ Đã restore config/hostinger.php"
+fi
+
+if [ -f "config/config.php.backup" ]; then
+    mv config/config.php.backup config/config.php
+    echo "✓ Đã restore config/config.php"
 fi
 
 echo ""

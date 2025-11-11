@@ -59,6 +59,37 @@ return [
 - Host thường là `localhost`
 - Copy chính xác tên database và username từ hPanel
 
+### 2.2. Cấu hình `config/config.php`
+
+Tạo file `config/config.php` từ `config/config.php.example`:
+
+```bash
+cp config/config.php.example config/config.php
+```
+
+Sửa file `config/config.php` và thay đổi `BASE_URL`:
+
+```php
+<?php
+// Base configuration
+// QUAN TRỌNG: Thay đổi BASE_URL theo domain của bạn
+define('BASE_URL', 'https://yourdomain.com/tpanel/'); // Thay yourdomain.com bằng domain thực tế
+define('ROOT_PATH', dirname(__DIR__));
+
+// Session configuration
+ini_set('session.cookie_httponly', 1);
+ini_set('session.use_only_cookies', 1);
+// Set cookie_secure = 1 vì đang dùng HTTPS
+ini_set('session.cookie_secure', 1); // ⚠️ Đổi thành 1 cho HTTPS
+
+// ... (phần còn lại giữ nguyên)
+```
+
+**Lưu ý:**
+- Thay `https://yourdomain.com/tpanel/` bằng URL thực tế của bạn
+- Nếu dùng HTTPS, đổi `session.cookie_secure` thành `1`
+- Nếu cài ở thư mục gốc (không có `/tpanel/`), bỏ `/tpanel/` trong BASE_URL
+
 ## Bước 3: Chạy cài đặt qua trình duyệt
 
 1. Mở trình duyệt

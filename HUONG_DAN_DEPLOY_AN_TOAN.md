@@ -11,10 +11,12 @@ Khi push code lên GitHub và tự động deploy lên server, các file cấu h
 Các file config đã được loại trừ khỏi Git:
 - `config/database.php` - **KHÔNG được commit**
 - `config/hostinger.php` - **KHÔNG được commit**
+- `config/config.php` - **KHÔNG được commit** (chứa BASE_URL riêng cho mỗi môi trường)
 
 Chỉ có file `.example` được commit:
 - `config/database.php.example` ✅
 - `config/hostinger.php.example` ✅
+- `config/config.php.example` ✅
 
 **Kết quả**: Khi pull code mới, file config trên server sẽ **KHÔNG bị ghi đè**.
 
@@ -47,6 +49,14 @@ if (Test-Path "config\database.php") {
     Copy-Item "config\database.php" "config\database.php.backup"
     Write-Host "✓ Đã backup config/database.php"
 }
+if (Test-Path "config\config.php") {
+    Copy-Item "config\config.php" "config\config.php.backup"
+    Write-Host "✓ Đã backup config/config.php"
+}
+if (Test-Path "config\hostinger.php") {
+    Copy-Item "config\hostinger.php" "config\hostinger.php.backup"
+    Write-Host "✓ Đã backup config/hostinger.php"
+}
 
 # Pull code
 git pull origin main
@@ -55,6 +65,14 @@ git pull origin main
 if (Test-Path "config\database.php.backup") {
     Move-Item "config\database.php.backup" "config\database.php" -Force
     Write-Host "✓ Đã restore config/database.php"
+}
+if (Test-Path "config\config.php.backup") {
+    Move-Item "config\config.php.backup" "config\config.php" -Force
+    Write-Host "✓ Đã restore config/config.php"
+}
+if (Test-Path "config\hostinger.php.backup") {
+    Move-Item "config\hostinger.php.backup" "config\hostinger.php" -Force
+    Write-Host "✓ Đã restore config/hostinger.php"
 }
 ```
 
@@ -74,9 +92,18 @@ if [ ! -f "config/database.php" ]; then
     fi
 fi
 
+if [ ! -f "config/config.php" ]; then
+    if [ -f "config/config.php.example" ]; then
+        cp config/config.php.example config/config.php
+        echo "Đã tạo config/config.php từ .example"
+        echo "⚠️ NHỚ SỬA BASE_URL trong config/config.php!"
+    fi
+fi
+
 # Đảm bảo file config không bị ghi đè
 git update-index --assume-unchanged config/database.php 2>/dev/null
 git update-index --assume-unchanged config/hostinger.php 2>/dev/null
+git update-index --assume-unchanged config/config.php 2>/dev/null
 ```
 
 Set quyền thực thi:
@@ -127,12 +154,17 @@ cat config/database.php
 
 ## Lưu Ý Quan Trọng
 
-⚠️ **KHÔNG BAO GIỜ** commit file `config/database.php` lên Git!
+⚠️ **KHÔNG BAO GIỜ** commit các file config sau lên Git:
+- `config/database.php`
+- `config/hostinger.php`
+- `config/config.php`
 
 Nếu vô tình commit, xóa ngay:
 ```bash
 git rm --cached config/database.php
-git commit -m "Remove config file from Git"
+git rm --cached config/config.php
+git rm --cached config/hostinger.php
+git commit -m "Remove config files from Git"
 git push
 ```
 
