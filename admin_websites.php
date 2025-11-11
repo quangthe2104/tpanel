@@ -187,13 +187,13 @@ include 'includes/header.php';
                     </div>
                     
                     <div class="mb-3">
-                        <label class="form-label">Đường dẫn trên Hostinger *</label>
+                        <label class="form-label">Đường dẫn trên server *</label>
                         <input type="text" name="path" class="form-control" value="<?php echo $editWebsite ? escape($editWebsite['path']) : ''; ?>" placeholder="/public_html hoặc /domains/domain.com/public_html" required>
-                        <small class="text-muted">Đường dẫn thư mục gốc của website trên Hostinger</small>
+                        <small class="text-muted">Đường dẫn thư mục gốc của website trên server</small>
                     </div>
                     
                     <hr>
-                    <h6>Thông tin kết nối Hostinger (SFTP/FTP)</h6>
+                    <h6>Thông tin kết nối SFTP/FTP</h6>
                     
                     <div class="mb-3">
                         <label class="form-label">Loại kết nối</label>

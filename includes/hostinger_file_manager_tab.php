@@ -67,7 +67,7 @@ if ($fileManager) {
 
 <div class="card">
     <div class="card-header d-flex justify-content-between align-items-center">
-        <h5 class="mb-0"><i class="bi bi-folder"></i> File Manager (Hostinger <?php echo strtoupper($website['connection_type'] ?? 'SFTP'); ?>)</h5>
+        <h5 class="mb-0"><i class="bi bi-folder"></i> File Manager (<?php echo strtoupper($website['connection_type'] ?? 'SFTP'); ?>)</h5>
         <?php if ($fileManager): ?>
         <div>
             <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#createFileModal">
@@ -85,7 +85,7 @@ if ($fileManager) {
     <div class="card-body">
         <?php if (!$fileManager): ?>
             <div class="alert alert-danger">
-                <i class="bi bi-exclamation-triangle"></i> <strong>Không thể kết nối đến Hostinger.</strong><br>
+                <i class="bi bi-exclamation-triangle"></i> <strong>Không thể kết nối đến server.</strong><br>
                 <?php if (isset($connectionError)): ?>
                     <small>Lỗi: <?php echo escape($connectionError); ?></small><br>
                 <?php endif; ?>

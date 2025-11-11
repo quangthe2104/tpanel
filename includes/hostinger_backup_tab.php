@@ -36,7 +36,7 @@ $backups = $backupManager->getBackups();
     <div class="col-md-12">
         <div class="card">
             <div class="card-header">
-                <h5 class="mb-0"><i class="bi bi-archive"></i> Backup & Restore (Hostinger)</h5>
+                <h5 class="mb-0"><i class="bi bi-archive"></i> Backup & Restore</h5>
             </div>
             <div class="card-body">
                 <?php if (isset($backupSuccess)): ?>
@@ -65,7 +65,7 @@ $backups = $backupManager->getBackups();
                         </div>
                     </form>
                     <small class="text-muted">
-                        <i class="bi bi-info-circle"></i> Backup sẽ được tải về từ Hostinger qua SFTP/FTP và lưu trên server Tpanel
+                        <i class="bi bi-info-circle"></i> Backup sẽ được tải về từ server qua SFTP/FTP và lưu trên server Tpanel
                     </small>
                 </div>
                 
