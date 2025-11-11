@@ -28,6 +28,8 @@ include 'includes/header.php';
 $fileManager = null;
 $diskUsage = 0;
 $connectionError = null;
+$diskUsageCalculating = false;
+
 try {
     if (empty($website['sftp_host']) || empty($website['sftp_username']) || empty($website['sftp_password'])) {
         throw new Exception("Thông tin kết nối SFTP/FTP chưa được cấu hình đầy đủ");
@@ -47,7 +49,10 @@ try {
         $website['connection_type'] ?? 'ftp',
         $website['sftp_port'] ?? ($website['connection_type'] === 'sftp' ? 22 : 21)
     );
-    $diskUsage = $fileManager->getDirectorySize();
+    
+    // Skip getDirectorySize() on initial load - it's too slow
+    // Will calculate on demand or show "Đang tính toán..."
+    $diskUsageCalculating = true;
 } catch (Exception $e) {
     $diskUsage = 0;
     $fileManager = null;
@@ -85,7 +90,16 @@ $totalSize = $diskUsage + $dbSize;
         <div class="card">
             <div class="card-body">
                 <h6 class="text-muted">Dung lượng Files</h6>
-                <h4><?php echo formatBytes($diskUsage); ?></h4>
+                <h4 id="disk-usage-display">
+                    <?php if ($diskUsageCalculating): ?>
+                        <span class="text-muted"><i class="bi bi-hourglass-split"></i> Đang tính toán...</span>
+                    <?php else: ?>
+                        <?php echo formatBytes($diskUsage); ?>
+                    <?php endif; ?>
+                </h4>
+                <?php if ($diskUsageCalculating && $fileManager): ?>
+                    <small><a href="#" onclick="calculateDiskUsage(); return false;" class="text-primary">Tính ngay</a></small>
+                <?php endif; ?>
             </div>
         </div>
     </div>
@@ -101,7 +115,13 @@ $totalSize = $diskUsage + $dbSize;
         <div class="card">
             <div class="card-body">
                 <h6 class="text-muted">Tổng dung lượng</h6>
-                <h4><?php echo formatBytes($totalSize); ?></h4>
+                <h4 id="total-size-display">
+                    <?php if ($diskUsageCalculating): ?>
+                        <span class="text-muted"><?php echo formatBytes($dbSize); ?> + ...</span>
+                    <?php else: ?>
+                        <?php echo formatBytes($totalSize); ?>
+                    <?php endif; ?>
+                </h4>
             </div>
         </div>
     </div>
@@ -140,5 +160,47 @@ $totalSize = $diskUsage + $dbSize;
 <?php else: ?>
     <div class="alert alert-warning">Bạn không có quyền truy cập tính năng này.</div>
 <?php endif; ?>
+
+<script>
+function calculateDiskUsage() {
+    const displayEl = document.getElementById('disk-usage-display');
+    const totalEl = document.getElementById('total-size-display');
+    
+    if (!displayEl) return;
+    
+    // Show loading
+    displayEl.innerHTML = '<span class="text-muted"><i class="bi bi-hourglass-split"></i> Đang tính toán...</span>';
+    
+    // Make AJAX request
+    fetch('ajax_get_disk_usage.php?id=<?php echo $websiteId; ?>')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                displayEl.innerHTML = data.diskUsageFormatted;
+                
+                // Update total size
+                if (totalEl) {
+                    const dbSize = <?php echo $dbSize; ?>;
+                    const totalSize = data.diskUsage + dbSize;
+                    totalEl.innerHTML = formatBytes(totalSize);
+                }
+            } else {
+                displayEl.innerHTML = '<span class="text-danger">Lỗi: ' + (data.error || 'Không thể tính toán') + '</span>';
+            }
+        })
+        .catch(error => {
+            displayEl.innerHTML = '<span class="text-danger">Lỗi kết nối</span>';
+            console.error('Error:', error);
+        });
+}
+
+function formatBytes(bytes) {
+    if (bytes === 0) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+}
+</script>
 
 <?php include 'includes/footer.php'; ?>
