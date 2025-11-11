@@ -91,7 +91,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </form>
         
         <div class="mt-3 text-center text-muted small">
-            <p>Mặc định: admin / admin123</p>
+            <p>Copyright © 2025 by Tpanel</p>
         </div>
     </div>
     

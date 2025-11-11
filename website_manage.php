@@ -33,11 +33,17 @@ try {
         throw new Exception("Thông tin kết nối SFTP/FTP chưa được cấu hình đầy đủ");
     }
     
+    // Use empty string or / for auto-detection with FTP
+    $basePath = trim($website['path'] ?? '');
+    if (empty($basePath)) {
+        $basePath = '/'; // Will auto-detect for FTP
+    }
+    
     $fileManager = new HostingerFileManager(
         $website['sftp_host'],
         $website['sftp_username'],
         $website['sftp_password'],
-        $website['path'] ?? '/',
+        $basePath,
         $website['connection_type'] ?? 'ftp',
         $website['sftp_port'] ?? ($website['connection_type'] === 'sftp' ? 22 : 21)
     );

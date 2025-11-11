@@ -187,9 +187,12 @@ include 'includes/header.php';
                     </div>
                     
                     <div class="mb-3">
-                        <label class="form-label">Đường dẫn trên server *</label>
-                        <input type="text" name="path" class="form-control" value="<?php echo $editWebsite ? escape($editWebsite['path']) : ''; ?>" placeholder="/public_html hoặc /domains/domain.com/public_html" required>
-                        <small class="text-muted">Đường dẫn thư mục gốc của website trên server</small>
+                        <label class="form-label">Đường dẫn trên server</label>
+                        <input type="text" name="path" class="form-control" value="<?php echo $editWebsite ? escape($editWebsite['path']) : ''; ?>" placeholder="Để trống hoặc / để tự động phát hiện, hoặc nhập: /public_html">
+                        <small class="text-muted">
+                            <strong>FTP:</strong> Để trống hoặc nhập <code>/</code> để tự động sử dụng thư mục làm việc hiện tại.<br>
+                            <strong>SFTP:</strong> Nhập đường dẫn đầy đủ, ví dụ: <code>/home/u624007921/domains/tomko.com.vn/public_html</code> hoặc <code>/public_html</code>
+                        </small>
                     </div>
                     
                     <hr>

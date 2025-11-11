@@ -10,8 +10,6 @@ class HostingerFileManager {
     private $currentPath;
     
     public function __construct($host, $username, $password, $basePath = '/', $connectionType = 'sftp', $port = null) {
-        $this->basePath = rtrim($basePath, '/');
-        $this->currentPath = $this->basePath;
         $this->connectionType = $connectionType;
         
         if ($connectionType === 'sftp') {
@@ -20,7 +18,26 @@ class HostingerFileManager {
         } else {
             $port = $port ?? 21;
             $this->ftpConnection = $this->connectFTP($host, $username, $password, $port);
+            
+            // Auto-detect working directory for FTP if basePath is empty or root
+            if (empty($basePath) || $basePath === '/') {
+                $pwd = @ftp_pwd($this->ftpConnection);
+                if ($pwd) {
+                    $basePath = $pwd;
+                    error_log("FTP: Auto-detected working directory: $basePath");
+                }
+            }
         }
+        
+        // Normalize basePath
+        $basePath = trim($basePath);
+        if (empty($basePath) || $basePath === '/') {
+            $this->basePath = '/';
+        } else {
+            $this->basePath = rtrim($basePath, '/');
+        }
+        
+        $this->currentPath = $this->basePath;
     }
     
     private function connectSFTP($host, $username, $password, $port = 22) {
@@ -65,17 +82,55 @@ class HostingerFileManager {
             return true;
         }
         
-        // Remove leading slash and combine with base path
-        $path = ltrim($path, '/');
-        $newPath = $this->basePath . '/' . $path;
+        $path = trim($path);
+        
+        // If path starts with /, it's absolute
+        if ($path[0] === '/') {
+            // If basePath is root, use path as is
+            if ($this->basePath === '/' || empty($this->basePath)) {
+                $newPath = rtrim($path, '/');
+                if (empty($newPath)) {
+                    $newPath = '/';
+                }
+            } else {
+                // Ensure absolute path is within basePath
+                if (strpos($path, $this->basePath) === 0) {
+                    $newPath = $path;
+                } else {
+                    $newPath = $this->basePath;
+                }
+            }
+        } else {
+            // Relative path - combine with basePath
+            if ($this->basePath === '/' || empty($this->basePath)) {
+                // For FTP, get current working directory
+                if ($this->connectionType === 'ftp' && $this->ftpConnection) {
+                    $pwd = @ftp_pwd($this->ftpConnection);
+                    if ($pwd) {
+                        $newPath = rtrim($pwd, '/') . '/' . $path;
+                    } else {
+                        $newPath = '/' . $path;
+                    }
+                } else {
+                    $newPath = '/' . $path;
+                }
+            } else {
+                $newPath = $this->basePath . '/' . $path;
+            }
+        }
         
         // Normalize path (remove double slashes, etc.)
         $newPath = str_replace(['//', '\\'], '/', $newPath);
         $newPath = rtrim($newPath, '/');
+        if (empty($newPath)) {
+            $newPath = $this->basePath === '/' ? '/' : $this->basePath;
+        }
         
-        // Ensure it doesn't go below base path
-        if (strpos($newPath, $this->basePath) !== 0) {
-            $newPath = $this->basePath;
+        // Ensure it doesn't go below base path (if basePath is not root)
+        if ($this->basePath !== '/' && !empty($this->basePath)) {
+            if (strpos($newPath, $this->basePath) !== 0) {
+                $newPath = $this->basePath;
+            }
         }
         
         $this->currentPath = $newPath;
@@ -100,9 +155,20 @@ class HostingerFileManager {
         try {
             if ($path !== null) {
                 // Use the provided path
-                $targetPath = $this->basePath;
-                if (!empty($path)) {
-                    $targetPath .= '/' . ltrim($path, '/');
+                if (empty($path)) {
+                    $targetPath = $this->basePath;
+                } else {
+                    // If path is absolute, use it directly (if basePath is root)
+                    if ($path[0] === '/' && ($this->basePath === '/' || empty($this->basePath))) {
+                        $targetPath = $path;
+                    } else {
+                        $targetPath = $this->basePath;
+                        if ($this->basePath !== '/' && !empty($this->basePath)) {
+                            $targetPath .= '/' . ltrim($path, '/');
+                        } else {
+                            $targetPath = ltrim($path, '/');
+                        }
+                    }
                 }
             } else {
                 // Use current path
@@ -218,23 +284,59 @@ class HostingerFileManager {
         $files = [];
         
         try {
+            // Get current working directory
+            $currentDir = @ftp_pwd($this->ftpConnection);
+            if (!$currentDir) {
+                error_log("FTP: Cannot get current working directory");
+                return [];
+            }
+            
+            // Normalize path
+            $path = trim($path);
+            if (empty($path) || $path === '/') {
+                // Use basePath, or current directory if basePath is root
+                if ($this->basePath === '/' || empty($this->basePath)) {
+                    $path = $currentDir;
+                } else {
+                    $path = $this->basePath;
+                }
+            } else {
+                // If path is relative, combine with basePath
+                if ($path[0] !== '/') {
+                    if ($this->basePath === '/' || empty($this->basePath)) {
+                        $path = $currentDir . '/' . $path;
+                    } else {
+                        $path = $this->basePath . '/' . $path;
+                    }
+                }
+                // If path is absolute but basePath is not root, ensure it's within basePath
+                elseif ($this->basePath !== '/' && !empty($this->basePath)) {
+                    if (strpos($path, $this->basePath) !== 0) {
+                        error_log("FTP: Path $path is outside basePath {$this->basePath}");
+                        return [];
+                    }
+                }
+            }
+            
             // Normalize path
             $path = rtrim($path, '/');
             if (empty($path)) {
-                $path = $this->basePath;
+                $path = $currentDir;
             }
             
             // Try to change to directory first to verify it exists
-            $currentDir = @ftp_pwd($this->ftpConnection);
             if (!@ftp_chdir($this->ftpConnection, $path)) {
-                // If path doesn't work, try base path
-                if ($path !== $this->basePath && @ftp_chdir($this->ftpConnection, $this->basePath)) {
-                    $path = $this->basePath;
-                } else {
-                    error_log("FTP: Cannot access path: $path");
-                    if ($currentDir) {
-                        @ftp_chdir($this->ftpConnection, $currentDir);
+                // If path doesn't work, try current directory
+                if ($path !== $currentDir) {
+                    if (@ftp_chdir($this->ftpConnection, $currentDir)) {
+                        $path = $currentDir;
+                        error_log("FTP: Cannot access path, using current directory: $path");
+                    } else {
+                        error_log("FTP: Cannot access path: $path (current dir: $currentDir)");
+                        return [];
                     }
+                } else {
+                    error_log("FTP: Cannot access current directory: $path");
                     return [];
                 }
             }
@@ -246,10 +348,8 @@ class HostingerFileManager {
                 // Fallback to nlist
                 $items = @ftp_nlist($this->ftpConnection, $path);
                 if (!$items) {
-                    error_log("FTP: Cannot list directory: $path");
-                    if ($currentDir) {
-                        @ftp_chdir($this->ftpConnection, $currentDir);
-                    }
+                    error_log("FTP: Cannot list directory: $path (tried rawlist and nlist)");
+                    @ftp_chdir($this->ftpConnection, $currentDir);
                     return [];
                 }
             }
@@ -398,7 +498,23 @@ class HostingerFileManager {
                 return false;
             }
             
-            $dirPath = rtrim($this->currentPath, '/') . '/' . $dirname;
+            // Build directory path
+            $currentPath = $this->currentPath;
+            if ($currentPath === '/' || empty($currentPath)) {
+                // For FTP, use current working directory
+                if ($this->connectionType === 'ftp' && $this->ftpConnection) {
+                    $pwd = @ftp_pwd($this->ftpConnection);
+                    if ($pwd) {
+                        $dirPath = rtrim($pwd, '/') . '/' . $dirname;
+                    } else {
+                        $dirPath = '/' . $dirname;
+                    }
+                } else {
+                    $dirPath = '/' . $dirname;
+                }
+            } else {
+                $dirPath = rtrim($currentPath, '/') . '/' . $dirname;
+            }
             
             if ($this->connectionType === 'sftp') {
                 if (!$this->sftpConnection) {
@@ -415,9 +531,27 @@ class HostingerFileManager {
                     error_log("FTP: Connection not established for createDirectory");
                     return false;
                 }
-                $result = @ftp_mkdir($this->ftpConnection, $dirPath);
+                
+                // Try to change to parent directory first
+                $parentDir = dirname($dirPath);
+                $originalDir = @ftp_pwd($this->ftpConnection);
+                
+                if ($parentDir !== '.' && $parentDir !== '/') {
+                    if (!@ftp_chdir($this->ftpConnection, $parentDir)) {
+                        error_log("FTP: Cannot change to parent directory: $parentDir");
+                        // Try creating with full path anyway
+                    }
+                }
+                
+                $result = @ftp_mkdir($this->ftpConnection, $dirname);
+                
+                // Restore original directory
+                if ($originalDir) {
+                    @ftp_chdir($this->ftpConnection, $originalDir);
+                }
+                
                 if (!$result) {
-                    error_log("FTP: Cannot create directory: $dirPath");
+                    error_log("FTP: Cannot create directory: $dirPath (tried: $dirname in " . ($parentDir !== '.' ? $parentDir : 'current') . ")");
                 }
                 return $result;
             }
