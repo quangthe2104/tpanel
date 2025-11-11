@@ -16,8 +16,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $fileManager) {
         if (empty($filename)) {
             echo '<div class="alert alert-danger">Tên file không được để trống!</div>';
         } elseif ($fileManager->createFile($filename, $content)) {
-            echo '<div class="alert alert-success">Tạo file thành công! Đang tải lại trang...</div>';
-            echo '<script>setTimeout(function(){ window.location.reload(); }, 1000);</script>';
+            // Redirect to GET URL to avoid resubmitting POST
+            $redirectUrl = 'website_manage.php?id=' . urlencode($websiteId) . '&tab=files';
+            if (!empty($currentPath)) {
+                $redirectUrl .= '&path=' . urlencode($currentPath);
+            }
+            header('Location: ' . $redirectUrl);
+            exit;
         } else {
             echo '<div class="alert alert-danger">Không thể tạo file! Kiểm tra quyền truy cập và error log.</div>';
         }
@@ -26,15 +31,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $fileManager) {
         if (empty($dirname)) {
             echo '<div class="alert alert-danger">Tên thư mục không được để trống!</div>';
         } elseif ($fileManager->createDirectory($dirname)) {
-            echo '<div class="alert alert-success">Tạo thư mục thành công! Đang tải lại trang...</div>';
-            echo '<script>setTimeout(function(){ window.location.reload(); }, 1000);</script>';
+            // Redirect to GET URL to avoid resubmitting POST
+            $redirectUrl = 'website_manage.php?id=' . urlencode($websiteId) . '&tab=files';
+            if (!empty($currentPath)) {
+                $redirectUrl .= '&path=' . urlencode($currentPath);
+            }
+            header('Location: ' . $redirectUrl);
+            exit;
         } else {
             echo '<div class="alert alert-danger">Không thể tạo thư mục! Kiểm tra quyền truy cập và error log.</div>';
         }
     } elseif (isset($_POST['delete'])) {
         $path = $_POST['path'];
         if ($fileManager->deleteFile($path)) {
-            echo '<div class="alert alert-success">Xóa thành công!</div>';
+            // Redirect to GET URL to avoid resubmitting POST
+            $redirectUrl = 'website_manage.php?id=' . urlencode($websiteId) . '&tab=files';
+            if (!empty($currentPath)) {
+                $redirectUrl .= '&path=' . urlencode($currentPath);
+            }
+            header('Location: ' . $redirectUrl);
+            exit;
         } else {
             echo '<div class="alert alert-danger">Không thể xóa!</div>';
         }
@@ -49,7 +65,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $fileManager) {
     } elseif (isset($_FILES['upload_file'])) {
         $dest = $_POST['upload_path'] ?? '';
         if ($fileManager->uploadFile($_FILES['upload_file'], $dest)) {
-            echo '<div class="alert alert-success">Upload thành công!</div>';
+            // Redirect to GET URL to avoid resubmitting POST
+            $redirectUrl = 'website_manage.php?id=' . urlencode($websiteId) . '&tab=files';
+            if (!empty($currentPath)) {
+                $redirectUrl .= '&path=' . urlencode($currentPath);
+            }
+            header('Location: ' . $redirectUrl);
+            exit;
         } else {
             echo '<div class="alert alert-danger">Upload thất bại!</div>';
         }
