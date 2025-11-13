@@ -173,10 +173,15 @@ class Auth {
     }
     
     public function logActivity($userId, $websiteId, $action, $description = null) {
-        $ip = $_SERVER['REMOTE_ADDR'] ?? null;
-        $this->db->query(
-            "INSERT INTO activity_logs (user_id, website_id, action, description, ip_address) VALUES (?, ?, ?, ?, ?)",
-            [$userId, $websiteId, $action, $description, $ip]
-        );
+        try {
+            $ip = $_SERVER['REMOTE_ADDR'] ?? null;
+            $this->db->query(
+                "INSERT INTO activity_logs (user_id, website_id, action, description, ip_address) VALUES (?, ?, ?, ?, ?)",
+                [$userId, $websiteId, $action, $description, $ip]
+            );
+        } catch (Exception $e) {
+            // Log error but don't break the flow
+            error_log("Failed to log activity: " . $e->getMessage());
+        }
     }
 }
