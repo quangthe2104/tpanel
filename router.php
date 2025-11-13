@@ -4,7 +4,18 @@
  * Routes friendly URLs to actual PHP files
  */
 
-require_once __DIR__ . '/includes/helpers/functions.php';
+// Enable error reporting for debugging (will be overridden by config.php)
+error_reporting(E_ALL);
+ini_set('display_errors', 0); // Don't display errors, log them instead
+ini_set('log_errors', 1);
+
+try {
+    require_once __DIR__ . '/includes/helpers/functions.php';
+} catch (Throwable $e) {
+    error_log("Router error loading functions: " . $e->getMessage());
+    http_response_code(500);
+    die("Internal Server Error. Please check server logs.");
+}
 
 // Get the request URI
 $requestUri = $_SERVER['REQUEST_URI'];

@@ -16,7 +16,10 @@ class Database {
             
             $this->connection = new PDO($dsn, $config['username'], $config['password'], $options);
         } catch (PDOException $e) {
-            die("Database connection failed: " . $e->getMessage());
+            // Log error instead of die() to avoid 500 errors
+            error_log("Database connection failed: " . $e->getMessage());
+            // Throw exception instead of die() so it can be caught by calling code
+            throw new Exception("Database connection failed. Please check your configuration.");
         }
     }
     
