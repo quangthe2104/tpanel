@@ -322,6 +322,11 @@ include __DIR__ . '/../includes/header.php';
                         <?php endif; ?>
                     <?php else: ?>
                         <span class="text-muted"><i class="bi bi-hourglass-split"></i> Chưa có dữ liệu</span>
+                        <?php if ($fileManager): ?>
+                            <a href="#" onclick="updateStorage(); return false;" class="text-primary" style="text-decoration: none; margin-left: 8px;" title="Tính dung lượng ngay">
+                                <i class="bi bi-arrow-clockwise" id="storage-refresh-icon" style="display: inline-block;"></i>
+                            </a>
+                        <?php endif; ?>
                     <?php endif; ?>
                 </h4>
                 <?php if ($storageUpdatedAt): ?>
