@@ -1,23 +1,42 @@
 <?php
-require_once 'includes/functions.php';
+require_once __DIR__ . '/includes/helpers/functions.php';
 
 $auth = new Auth();
+$security = Security::getInstance();
 $error = '';
 
 if ($auth->isLoggedIn()) {
-    header('Location: index.php');
+    header('Location: ' . url(''));
     exit;
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $username = $_POST['username'] ?? '';
+    // Check CSRF token
+    $security->checkCSRF();
+    
+    $username = trim($_POST['username'] ?? '');
     $password = $_POST['password'] ?? '';
     
-    if ($auth->login($username, $password)) {
-        header('Location: index.php');
-        exit;
+    // Sanitize username
+    $username = $security->sanitizeString($username, 255);
+    
+    // Check rate limiting
+    $rateLimit = $security->checkRateLimit('login_' . $username, 5, 900);
+    if (!$rateLimit['allowed']) {
+        $error = $rateLimit['message'];
+        $security->logSecurityEvent('login_rate_limit_exceeded', "Username: $username");
+    } elseif (!empty($username) && !empty($password)) {
+        if ($auth->login($username, $password)) {
+            // Reset rate limit on successful login
+            $security->resetRateLimit('login_' . $username);
+            header('Location: ' . url(''));
+            exit;
+        } else {
+            $error = 'Tên đăng nhập hoặc mật khẩu không đúng';
+            $security->logSecurityEvent('login_failed', "Username: $username");
+        }
     } else {
-        $error = 'Tên đăng nhập hoặc mật khẩu không đúng';
+        $error = 'Vui lòng nhập đầy đủ thông tin';
     }
 }
 ?>
@@ -69,11 +88,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <?php endif; ?>
         
         <form method="POST">
+            <?php echo $security->getCSRFField(); ?>
             <div class="mb-3">
                 <label for="username" class="form-label">Tên đăng nhập hoặc Email</label>
                 <div class="input-group">
                     <span class="input-group-text"><i class="bi bi-person"></i></span>
-                    <input type="text" class="form-control" id="username" name="username" required autofocus>
+                    <input type="text" class="form-control" id="username" name="username" required autofocus maxlength="255">
                 </div>
             </div>
             

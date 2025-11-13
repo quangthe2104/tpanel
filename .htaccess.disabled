@@ -3,16 +3,11 @@
 # Prevent directory listing
 Options -Indexes
 
-# Protect config files (Apache 2.4 syntax)
-<FilesMatch "^(database|hostinger|config)\.php$">
-    Require all denied
+# Protect config files
+<FilesMatch "^(database|hostinger)\.php$">
+    Order Deny,Allow
+    Deny from all
 </FilesMatch>
-
-# Protect config directory
-<IfModule mod_rewrite.c>
-    RewriteEngine On
-    RewriteRule ^config/ - [F,L]
-</IfModule>
 
 # Protect install.php after installation
 # Uncomment the line below after installation:
@@ -58,35 +53,6 @@ Options -Indexes
 # Security Headers
 <IfModule mod_headers.c>
     Header set X-Content-Type-Options "nosniff"
-    Header set X-Frame-Options "DENY"
+    Header set X-Frame-Options "SAMEORIGIN"
     Header set X-XSS-Protection "1; mode=block"
-    Header set Referrer-Policy "strict-origin-when-cross-origin"
-</IfModule>
-
-# Prevent access to sensitive files
-<FilesMatch "\.(log|sql|bak|backup|old|tmp)$">
-    Require all denied
-</FilesMatch>
-
-# URL Friendly Rewrite Rules
-<IfModule mod_rewrite.c>
-    RewriteEngine On
-    RewriteBase /
-    
-    # Protect includes directory from direct access
-    RewriteRule ^includes/.*\.php$ - [F,L]
-    
-    # Protect config directory
-    RewriteRule ^config/ - [F,L]
-    
-    # Protect backups directory
-    RewriteRule ^backups/ - [F,L]
-    
-    # Don't rewrite if file exists
-    RewriteCond %{REQUEST_FILENAME} -f [OR]
-    RewriteCond %{REQUEST_FILENAME} -d
-    RewriteRule ^ - [L]
-    
-    # Route all requests to router.php
-    RewriteRule ^(.*)$ router.php [QSA,L]
 </IfModule>

@@ -5,7 +5,7 @@
  */
 
 require_once 'config/config.php';
-require_once 'includes/Database.php';
+require_once __DIR__ . '/includes/classes/Database.php';
 
 // Check if already installed
 if (php_sapi_name() !== 'cli') {
@@ -120,18 +120,35 @@ try {
     echo "  Username: admin\n";
     echo "  Password: admin123\n";
     echo "\n⚠️  VUI LÒNG ĐỔI MẬT KHẨU NGAY SAU KHI ĐĂNG NHẬP!\n";
-    echo "\n🔒 QUAN TRỌNG: Xóa hoặc đổi tên file install.php để bảo mật!\n";
+    echo "\n🔒 BẢO MẬT: Xóa các file sau để bảo mật hệ thống:\n";
+    echo "  1. install.php (file cài đặt)\n";
+    echo "  2. install.bat (script cài đặt Windows)\n";
+    echo "  3. config/*.example (các file mẫu cấu hình)\n";
+    echo "     - config/config.php.example\n";
+    echo "     - config/database.php.example\n";
+    echo "     - config/hostinger.php.example\n";
+    echo "  4. error_log.txt (file log lỗi, nếu có)\n";
     echo "\nBước tiếp theo:\n";
-    echo "1. Xóa file install.php (bảo mật)\n";
+    echo "1. Xóa các file trên để bảo mật\n";
     echo "2. Đăng nhập vào Tpanel\n";
     echo "3. Đổi mật khẩu admin\n";
-    echo "4. Thêm website từ Hostinger\n";
+    echo "4. Thêm website từ admin panel\n";
     echo "5. Phân quyền cho người dùng\n";
     
     if (php_sapi_name() !== 'cli') {
         echo "</pre>";
         echo "<div style='margin-top:20px;padding:15px;background:#fff3cd;border-left:4px solid #ffc107;border-radius:5px;'>";
-        echo "<strong>⚠️ Bảo mật:</strong> Vui lòng xóa hoặc đổi tên file <code>install.php</code> sau khi cài đặt xong!";
+        echo "<strong>🔒 BẢO MẬT - XÓA CÁC FILE SAU:</strong><br><br>";
+        echo "<strong>1. File cài đặt:</strong><br>";
+        echo "&nbsp;&nbsp;• <code>install.php</code><br>";
+        echo "&nbsp;&nbsp;• <code>install.bat</code> (nếu có)<br><br>";
+        echo "<strong>2. File mẫu cấu hình:</strong><br>";
+        echo "&nbsp;&nbsp;• <code>config/config.php.example</code><br>";
+        echo "&nbsp;&nbsp;• <code>config/database.php.example</code><br>";
+        echo "&nbsp;&nbsp;• <code>config/hostinger.php.example</code><br><br>";
+        echo "<strong>3. File log (nếu có):</strong><br>";
+        echo "&nbsp;&nbsp;• <code>error_log.txt</code><br><br>";
+        echo "<small>💡 <strong>Lưu ý:</strong> Các file <code>config/*.php</code> (không có .example) đã được bảo vệ bởi .htaccess và không cần xóa.</small>";
         echo "</div>";
         echo "<div style='margin-top:15px;'>";
         echo "<a href='login.php' style='display:inline-block;padding:10px 20px;background:#667eea;color:white;text-decoration:none;border-radius:5px;'>Đăng nhập ngay</a>";
@@ -149,7 +166,7 @@ try {
         echo "<ul>";
         echo "<li>File config/database.php đã được tạo chưa?</li>";
         echo "<li>Thông tin database có đúng không?</li>";
-        echo "<li>Database và user đã được tạo trên Hostinger chưa?</li>";
+        echo "<li>Database và user đã được tạo trên hosting chưa?</li>";
         echo "</ul>";
         echo "</div>";
         echo "</div></body></html>";

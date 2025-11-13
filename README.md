@@ -1,13 +1,13 @@
-# Tpanel - Quản lý Website trên Hostinger
+# Tpanel - Quản lý Website
 
-Hệ thống quản lý website tích hợp với Hostinger, cho phép quản lý nhiều website thông qua SFTP/FTP và MySQL.
+Hệ thống quản lý website, cho phép quản lý nhiều website thông qua SFTP/FTP và MySQL.
 
 > **Lưu ý cho WAMP users**: Nếu PHP không có trong PATH, hãy chạy file `install.bat` thay vì `php install.php`
 
 ## Tính năng
 
 - ✅ **Quản lý người dùng**: Tạo tài khoản và phân quyền cho từng website
-- ✅ **File Manager**: Quản lý files qua SFTP/FTP kết nối với Hostinger
+- ✅ **File Manager**: Quản lý files qua SFTP/FTP kết nối với server
 - ✅ **Database Manager**: Quản lý MySQL database
 - ✅ **Backup & Restore**: Tạo và download backup files và database
 - ✅ **Thống kê dung lượng**: Hiển thị dung lượng sử dụng của website
@@ -72,11 +72,11 @@ return [
 ];
 ```
 
-#### Cấu hình Hostinger (`config/hostinger.php`)
+#### Cấu hình API (Tùy chọn - `config/hostinger.php`)
 ```php
 return [
-    'api_url' => 'https://api.hostinger.com/v1', // Nếu Hostinger có API
-    'api_key' => '', // API Key từ Hostinger
+    'api_url' => 'https://api.example.com/v1', // Nếu có API
+    'api_key' => '', // API Key
     'api_secret' => '',
 ];
 ```
@@ -111,13 +111,13 @@ return [
 ];
 ```
 
-#### Cấu hình Hostinger API (Tùy chọn - `config/hostinger.php`)
+#### Cấu hình API (Tùy chọn - `config/hostinger.php`)
 **LƯU Ý**: Hiện tại **KHÔNG CẦN** cấu hình API key!
 
-Hệ thống hoạt động qua SFTP/FTP được cấu hình trực tiếp trong database khi thêm website. File `config/hostinger.php` chỉ dự phòng cho tương lai nếu Hostinger cung cấp API.
+Hệ thống hoạt động qua SFTP/FTP được cấu hình trực tiếp trong database khi thêm website. File `config/hostinger.php` chỉ dự phòng cho tương lai nếu có API.
 
 **Bạn chỉ cần:**
-- Thông tin SFTP/FTP từ Hostinger (khi thêm website trong admin panel)
+- Thông tin SFTP/FTP từ hosting (khi thêm website trong admin panel)
 - Thông tin MySQL database (khi thêm website)
 
 ### 5. Thêm Website
@@ -127,12 +127,12 @@ Hệ thống hoạt động qua SFTP/FTP được cấu hình trực tiếp tron
 3. Điền thông tin:
    - **Tên website**: Tên hiển thị
    - **Domain**: Domain của website
-   - **Đường dẫn**: Đường dẫn trên Hostinger (ví dụ: `/public_html` hoặc `/domains/domain.com/public_html`)
+   - **Đường dẫn**: Đường dẫn trên server (ví dụ: `/public_html` hoặc `/domains/example.com/public_html`)
    - **Loại kết nối**: SFTP (khuyến nghị) hoặc FTP
-   - **SFTP/FTP Host**: Host từ Hostinger (ví dụ: `ftp.yourdomain.com` hoặc IP)
+   - **SFTP/FTP Host**: Host từ hosting (ví dụ: `ftp.example.com` hoặc IP)
    - **SFTP/FTP Port**: 22 cho SFTP, 21 cho FTP
-   - **SFTP/FTP Username**: Username từ Hostinger
-   - **SFTP/FTP Password**: Password từ Hostinger
+   - **SFTP/FTP Username**: Username từ hosting
+   - **SFTP/FTP Password**: Password từ hosting
    - **Database**: Thông tin MySQL (nếu có)
      - **DB Host**: Thường là `localhost`
      - **DB Name**: Tên database
@@ -149,13 +149,13 @@ Hệ thống hoạt động qua SFTP/FTP được cấu hình trực tiếp tron
    - Backup
    - Xem thống kê
 
-## Lấy thông tin SFTP/FTP từ Hostinger
+## Lấy thông tin SFTP/FTP từ hosting
 
-1. Đăng nhập vào **hPanel** của Hostinger
+1. Đăng nhập vào control panel của hosting
 2. Vào **Files** → **FTP Accounts**
 3. Tạo hoặc xem thông tin FTP account
 4. Copy các thông tin:
-   - **Host**: Thường là `ftp.yourdomain.com` hoặc IP
+   - **Host**: Thường là `ftp.example.com` hoặc IP
    - **Username**: Username FTP
    - **Password**: Password FTP
    - **Port**: 21 cho FTP, 22 cho SFTP
@@ -171,7 +171,7 @@ Hệ thống hoạt động qua SFTP/FTP được cấu hình trực tiếp tron
 
 ### Quản lý Website
 - Admin có thể thêm, sửa, xóa website
-- Mỗi website cần cấu hình thông tin SFTP/FTP từ Hostinger
+- Mỗi website cần cấu hình thông tin SFTP/FTP từ hosting
 
 ### File Manager
 - Xem, tạo, sửa, xóa files và thư mục
@@ -202,11 +202,11 @@ Hệ thống hoạt động qua SFTP/FTP được cấu hình trực tiếp tron
 
 ### Lỗi kết nối SFTP
 - Kiểm tra extension `ssh2` đã được cài đặt: `php -m | grep ssh2`
-- Kiểm tra thông tin SFTP từ Hostinger
+- Kiểm tra thông tin SFTP từ hosting
 - Thử kết nối bằng FTP nếu SFTP không hoạt động
 
 ### Lỗi kết nối Database
-- Kiểm tra thông tin database từ Hostinger
+- Kiểm tra thông tin database từ hosting
 - Đảm bảo MySQL user có quyền truy cập từ xa (nếu cần)
 
 ### Lỗi Backup
@@ -220,7 +220,7 @@ Hệ thống hoạt động qua SFTP/FTP được cấu hình trực tiếp tron
 Nếu gặp vấn đề, vui lòng kiểm tra:
 1. Logs trong database table `activity_logs`
 2. PHP error logs
-3. Cấu hình SFTP/FTP từ Hostinger
+3. Cấu hình SFTP/FTP từ hosting
 
 ## Cài đặt Git (Nếu chưa có)
 
@@ -231,17 +231,17 @@ Nếu gặp lỗi "git is not recognized", xem file **`HUONG_DAN_CAI_GIT.md`** �
 
 Hoặc chạy file `kiem_tra_git.bat` để kiểm tra Git đã cài chưa.
 
-## Cài đặt trên Hostinger Hosting
+## Cài đặt trên Hosting
 
 Xem file **`HUONG_DAN_CAI_DAT_HOSTING.md`** để biết cách:
-- Upload code lên Hostinger
-- Tạo database trên Hostinger
+- Upload code lên hosting
+- Tạo database trên hosting
 - Chạy cài đặt qua trình duyệt
 - Cấu hình và bảo mật
 
 **Tóm tắt nhanh:**
 1. Upload code lên `public_html`
-2. Tạo database trong hPanel
+2. Tạo database trong control panel
 3. Tạo file `config/database.php` từ `.example`
 4. Truy cập `https://yourdomain.com/install.php` qua trình duyệt
 5. Xóa file `install.php` sau khi cài xong

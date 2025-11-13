@@ -1,0 +1,265 @@
+[13-Nov-2025 11:45:45 Asia/Ho_Chi_Minh] DatabaseManager: Attempting connection to host=45.130.228.73, dbname=u624007921_tyrmp, user=u624007921_OKRcS
+[13-Nov-2025 11:45:46 Asia/Ho_Chi_Minh] DatabaseManager: Connection successful to 45.130.228.73
+[13-Nov-2025 11:45:46 Asia/Ho_Chi_Minh] DatabaseManager: Attempting connection to host=45.130.228.73, dbname=u624007921_tyrmp, user=u624007921_OKRcS
+[13-Nov-2025 11:45:46 Asia/Ho_Chi_Minh] DatabaseManager: Connection successful to 45.130.228.73
+[13-Nov-2025 11:45:49 Asia/Ho_Chi_Minh] DatabaseManager: Attempting connection to host=45.130.228.73, dbname=u624007921_tyrmp, user=u624007921_OKRcS
+[13-Nov-2025 11:45:49 Asia/Ho_Chi_Minh] DatabaseManager: Connection successful to 45.130.228.73
+[13-Nov-2025 11:46:04 Asia/Ho_Chi_Minh] DatabaseManager: Attempting connection to host=45.130.228.73, dbname=u624007921_tyrmp, user=u624007921_OKRcS
+[13-Nov-2025 11:46:05 Asia/Ho_Chi_Minh] DatabaseManager: Connection successful to 45.130.228.73
+[13-Nov-2025 11:46:06 Asia/Ho_Chi_Minh] DatabaseManager: Attempting connection to host=45.130.228.73, dbname=u624007921_tyrmp, user=u624007921_OKRcS
+[13-Nov-2025 11:46:06 Asia/Ho_Chi_Minh] DatabaseManager: Connection successful to 45.130.228.73
+[13-Nov-2025 11:46:15 Asia/Ho_Chi_Minh] DatabaseManager: Attempting connection to host=45.130.228.73, dbname=u624007921_tyrmp, user=u624007921_OKRcS
+[13-Nov-2025 11:46:16 Asia/Ho_Chi_Minh] DatabaseManager: Connection successful to 45.130.228.73
+[13-Nov-2025 11:46:18 Asia/Ho_Chi_Minh] DatabaseManager: Attempting connection to host=45.130.228.73, dbname=u624007921_tyrmp, user=u624007921_OKRcS
+[13-Nov-2025 11:46:18 Asia/Ho_Chi_Minh] DatabaseManager: Connection successful to 45.130.228.73
+[13-Nov-2025 11:46:26 Asia/Ho_Chi_Minh] DatabaseManager: Attempting connection to host=45.130.228.73, dbname=u624007921_tyrmp, user=u624007921_OKRcS
+[13-Nov-2025 11:46:26 Asia/Ho_Chi_Minh] DatabaseManager: Connection successful to 45.130.228.73
+[13-Nov-2025 11:46:26 Asia/Ho_Chi_Minh] DatabaseManager: Attempting connection to host=45.130.228.73, dbname=u624007921_tyrmp, user=u624007921_OKRcS
+[13-Nov-2025 11:46:26 Asia/Ho_Chi_Minh] DatabaseManager: Connection successful to 45.130.228.73
+[13-Nov-2025 11:46:29 Asia/Ho_Chi_Minh] DatabaseManager: Attempting connection to host=45.130.228.73, dbname=u624007921_tyrmp, user=u624007921_OKRcS
+[13-Nov-2025 11:46:29 Asia/Ho_Chi_Minh] DatabaseManager: Connection successful to 45.130.228.73
+[13-Nov-2025 11:46:31 Asia/Ho_Chi_Minh] DatabaseManager: Attempting connection to host=45.130.228.73, dbname=u624007921_tyrmp, user=u624007921_OKRcS
+[13-Nov-2025 11:46:31 Asia/Ho_Chi_Minh] DatabaseManager: Connection successful to 45.130.228.73
+[13-Nov-2025 11:46:38 Asia/Ho_Chi_Minh] DatabaseManager: Attempting connection to host=45.130.228.73, dbname=u624007921_tyrmp, user=u624007921_OKRcS
+[13-Nov-2025 11:46:39 Asia/Ho_Chi_Minh] DatabaseManager: Connection successful to 45.130.228.73
+[13-Nov-2025 12:22:36 Asia/Ho_Chi_Minh] DatabaseManager: Attempting connection to host=45.130.228.73, dbname=u624007921_tyrmp, user=u624007921_OKRcS
+[13-Nov-2025 12:22:36 Asia/Ho_Chi_Minh] DatabaseManager: Connection successful to 45.130.228.73
+[13-Nov-2025 12:33:12 Asia/Ho_Chi_Minh] PHP Warning:  Undefined array key "tab" in D:\wamp64\www\tpanel\website_manage.php on line 29
+[13-Nov-2025 12:33:12 Asia/Ho_Chi_Minh] PHP Stack trace:
+[13-Nov-2025 12:33:12 Asia/Ho_Chi_Minh] PHP   1. {main}() D:\wamp64\www\tpanel\website_manage.php:0
+[13-Nov-2025 12:33:27 Asia/Ho_Chi_Minh] PHP Warning:  Undefined array key "action" in D:\wamp64\www\tpanel\includes\database_manager_tab.php on line 11
+[13-Nov-2025 12:33:27 Asia/Ho_Chi_Minh] PHP Stack trace:
+[13-Nov-2025 12:33:27 Asia/Ho_Chi_Minh] PHP   1. {main}() D:\wamp64\www\tpanel\website_manage.php:0
+[13-Nov-2025 12:33:27 Asia/Ho_Chi_Minh] PHP   2. include() D:\wamp64\www\tpanel\website_manage.php:418
+[13-Nov-2025 12:33:40 Asia/Ho_Chi_Minh] PHP Warning:  Undefined array key "action" in D:\wamp64\www\tpanel\includes\database_manager_tab.php on line 11
+[13-Nov-2025 12:33:40 Asia/Ho_Chi_Minh] PHP Stack trace:
+[13-Nov-2025 12:33:40 Asia/Ho_Chi_Minh] PHP   1. {main}() D:\wamp64\www\tpanel\website_manage.php:0
+[13-Nov-2025 12:33:40 Asia/Ho_Chi_Minh] PHP   2. include() D:\wamp64\www\tpanel\website_manage.php:418
+[13-Nov-2025 12:33:46 Asia/Ho_Chi_Minh] PHP Warning:  Undefined array key "action" in D:\wamp64\www\tpanel\includes\hostinger_file_manager_tab.php on line 3
+[13-Nov-2025 12:33:46 Asia/Ho_Chi_Minh] PHP Stack trace:
+[13-Nov-2025 12:33:46 Asia/Ho_Chi_Minh] PHP   1. {main}() D:\wamp64\www\tpanel\website_manage.php:0
+[13-Nov-2025 12:33:46 Asia/Ho_Chi_Minh] PHP   2. include() D:\wamp64\www\tpanel\website_manage.php:416
+[13-Nov-2025 12:33:46 Asia/Ho_Chi_Minh] PHP Warning:  preg_replace(): No ending delimiter '#' found in D:\wamp64\www\tpanel\includes\Security.php on line 173
+[13-Nov-2025 12:33:46 Asia/Ho_Chi_Minh] PHP Stack trace:
+[13-Nov-2025 12:33:46 Asia/Ho_Chi_Minh] PHP   1. {main}() D:\wamp64\www\tpanel\website_manage.php:0
+[13-Nov-2025 12:33:46 Asia/Ho_Chi_Minh] PHP   2. include() D:\wamp64\www\tpanel\website_manage.php:416
+[13-Nov-2025 12:33:46 Asia/Ho_Chi_Minh] PHP   3. Security->sanitizePath($path = '') D:\wamp64\www\tpanel\includes\hostinger_file_manager_tab.php:4
+[13-Nov-2025 12:33:46 Asia/Ho_Chi_Minh] PHP   4. preg_replace($pattern = '#\\.\\.\\#', $replacement = '', $subject = '') D:\wamp64\www\tpanel\includes\Security.php:173
+[13-Nov-2025 12:33:46 Asia/Ho_Chi_Minh] PHP Deprecated:  trim(): Passing null to parameter #1 ($string) of type string is deprecated in D:\wamp64\www\tpanel\includes\Security.php on line 176
+[13-Nov-2025 12:33:46 Asia/Ho_Chi_Minh] PHP Stack trace:
+[13-Nov-2025 12:33:46 Asia/Ho_Chi_Minh] PHP   1. {main}() D:\wamp64\www\tpanel\website_manage.php:0
+[13-Nov-2025 12:33:46 Asia/Ho_Chi_Minh] PHP   2. include() D:\wamp64\www\tpanel\website_manage.php:416
+[13-Nov-2025 12:33:46 Asia/Ho_Chi_Minh] PHP   3. Security->sanitizePath($path = '') D:\wamp64\www\tpanel\includes\hostinger_file_manager_tab.php:4
+[13-Nov-2025 12:33:46 Asia/Ho_Chi_Minh] PHP   4. trim($string = NULL, $characters = '/') D:\wamp64\www\tpanel\includes\Security.php:176
+[13-Nov-2025 12:35:05 Asia/Ho_Chi_Minh] PHP Warning:  Undefined array key "action" in D:\wamp64\www\tpanel\includes\database_manager_tab.php on line 11
+[13-Nov-2025 12:35:05 Asia/Ho_Chi_Minh] PHP Stack trace:
+[13-Nov-2025 12:35:05 Asia/Ho_Chi_Minh] PHP   1. {main}() D:\wamp64\www\tpanel\website_manage.php:0
+[13-Nov-2025 12:35:05 Asia/Ho_Chi_Minh] PHP   2. include() D:\wamp64\www\tpanel\website_manage.php:418
+[13-Nov-2025 12:35:12 Asia/Ho_Chi_Minh] PHP Warning:  Undefined array key "action" in D:\wamp64\www\tpanel\includes\database_manager_tab.php on line 11
+[13-Nov-2025 12:35:12 Asia/Ho_Chi_Minh] PHP Stack trace:
+[13-Nov-2025 12:35:12 Asia/Ho_Chi_Minh] PHP   1. {main}() D:\wamp64\www\tpanel\website_manage.php:0
+[13-Nov-2025 12:35:12 Asia/Ho_Chi_Minh] PHP   2. include() D:\wamp64\www\tpanel\website_manage.php:418
+[13-Nov-2025 12:54:47 Asia/Ho_Chi_Minh] PHP Warning:  Undefined variable $security in D:\wamp64\www\tpanel\admin_websites.php on line 115
+[13-Nov-2025 12:54:47 Asia/Ho_Chi_Minh] PHP Stack trace:
+[13-Nov-2025 12:54:47 Asia/Ho_Chi_Minh] PHP   1. {main}() D:\wamp64\www\tpanel\admin_websites.php:0
+[13-Nov-2025 12:54:47 Asia/Ho_Chi_Minh] PHP Fatal error:  Uncaught Error: Call to a member function validateInt() on null in D:\wamp64\www\tpanel\admin_websites.php:115
+Stack trace:
+#0 {main}
+  thrown in D:\wamp64\www\tpanel\admin_websites.php on line 115
+[13-Nov-2025 12:54:54 Asia/Ho_Chi_Minh] PHP Warning:  Undefined variable $security in D:\wamp64\www\tpanel\admin_websites.php on line 115
+[13-Nov-2025 12:54:54 Asia/Ho_Chi_Minh] PHP Stack trace:
+[13-Nov-2025 12:54:54 Asia/Ho_Chi_Minh] PHP   1. {main}() D:\wamp64\www\tpanel\router.php:0
+[13-Nov-2025 12:54:54 Asia/Ho_Chi_Minh] PHP   2. require() D:\wamp64\www\tpanel\router.php:106
+[13-Nov-2025 12:54:54 Asia/Ho_Chi_Minh] PHP Fatal error:  Uncaught Error: Call to a member function validateInt() on null in D:\wamp64\www\tpanel\admin_websites.php:115
+Stack trace:
+#0 D:\wamp64\www\tpanel\router.php(106): require()
+#1 {main}
+  thrown in D:\wamp64\www\tpanel\admin_websites.php on line 115
+[13-Nov-2025 12:55:06 Asia/Ho_Chi_Minh] PHP Warning:  Undefined variable $security in D:\wamp64\www\tpanel\admin_websites.php on line 115
+[13-Nov-2025 12:55:06 Asia/Ho_Chi_Minh] PHP Stack trace:
+[13-Nov-2025 12:55:06 Asia/Ho_Chi_Minh] PHP   1. {main}() D:\wamp64\www\tpanel\router.php:0
+[13-Nov-2025 12:55:06 Asia/Ho_Chi_Minh] PHP   2. require() D:\wamp64\www\tpanel\router.php:106
+[13-Nov-2025 12:55:06 Asia/Ho_Chi_Minh] PHP Fatal error:  Uncaught Error: Call to a member function validateInt() on null in D:\wamp64\www\tpanel\admin_websites.php:115
+Stack trace:
+#0 D:\wamp64\www\tpanel\router.php(106): require()
+#1 {main}
+  thrown in D:\wamp64\www\tpanel\admin_websites.php on line 115
+[13-Nov-2025 12:55:35 Asia/Ho_Chi_Minh] PHP Warning:  Undefined variable $security in D:\wamp64\www\tpanel\admin_websites.php on line 115
+[13-Nov-2025 12:55:35 Asia/Ho_Chi_Minh] PHP Stack trace:
+[13-Nov-2025 12:55:35 Asia/Ho_Chi_Minh] PHP   1. {main}() D:\wamp64\www\tpanel\router.php:0
+[13-Nov-2025 12:55:35 Asia/Ho_Chi_Minh] PHP   2. require() D:\wamp64\www\tpanel\router.php:106
+[13-Nov-2025 12:55:35 Asia/Ho_Chi_Minh] PHP Fatal error:  Uncaught Error: Call to a member function validateInt() on null in D:\wamp64\www\tpanel\admin_websites.php:115
+Stack trace:
+#0 D:\wamp64\www\tpanel\router.php(106): require()
+#1 {main}
+  thrown in D:\wamp64\www\tpanel\admin_websites.php on line 115
+[13-Nov-2025 14:14:59 Asia/Ho_Chi_Minh] PHP Warning:  require(api/ajax_check_backup_status.php): Failed to open stream: No such file or directory in D:\wamp64\www\tpanel\router.php on line 81
+[13-Nov-2025 14:14:59 Asia/Ho_Chi_Minh] PHP Stack trace:
+[13-Nov-2025 14:14:59 Asia/Ho_Chi_Minh] PHP   1. {main}() D:\wamp64\www\tpanel\router.php:0
+[13-Nov-2025 14:14:59 Asia/Ho_Chi_Minh] PHP Fatal error:  Uncaught Error: Failed opening required 'api/ajax_check_backup_status.php' (include_path='.;C:\php\pear') in D:\wamp64\www\tpanel\router.php:81
+Stack trace:
+#0 {main}
+  thrown in D:\wamp64\www\tpanel\router.php on line 81
+[13-Nov-2025 14:15:04 Asia/Ho_Chi_Minh] PHP Warning:  require(api/ajax_check_backup_status.php): Failed to open stream: No such file or directory in D:\wamp64\www\tpanel\router.php on line 81
+[13-Nov-2025 14:15:04 Asia/Ho_Chi_Minh] PHP Stack trace:
+[13-Nov-2025 14:15:04 Asia/Ho_Chi_Minh] PHP   1. {main}() D:\wamp64\www\tpanel\router.php:0
+[13-Nov-2025 14:15:04 Asia/Ho_Chi_Minh] PHP Fatal error:  Uncaught Error: Failed opening required 'api/ajax_check_backup_status.php' (include_path='.;C:\php\pear') in D:\wamp64\www\tpanel\router.php:81
+Stack trace:
+#0 {main}
+  thrown in D:\wamp64\www\tpanel\router.php on line 81
+[13-Nov-2025 14:15:09 Asia/Ho_Chi_Minh] PHP Warning:  require(api/ajax_check_backup_status.php): Failed to open stream: No such file or directory in D:\wamp64\www\tpanel\router.php on line 81
+[13-Nov-2025 14:15:09 Asia/Ho_Chi_Minh] PHP Stack trace:
+[13-Nov-2025 14:15:09 Asia/Ho_Chi_Minh] PHP   1. {main}() D:\wamp64\www\tpanel\router.php:0
+[13-Nov-2025 14:15:09 Asia/Ho_Chi_Minh] PHP Fatal error:  Uncaught Error: Failed opening required 'api/ajax_check_backup_status.php' (include_path='.;C:\php\pear') in D:\wamp64\www\tpanel\router.php:81
+Stack trace:
+#0 {main}
+  thrown in D:\wamp64\www\tpanel\router.php on line 81
+[13-Nov-2025 14:15:14 Asia/Ho_Chi_Minh] PHP Warning:  require(api/ajax_check_backup_status.php): Failed to open stream: No such file or directory in D:\wamp64\www\tpanel\router.php on line 81
+[13-Nov-2025 14:15:14 Asia/Ho_Chi_Minh] PHP Stack trace:
+[13-Nov-2025 14:15:14 Asia/Ho_Chi_Minh] PHP   1. {main}() D:\wamp64\www\tpanel\router.php:0
+[13-Nov-2025 14:15:14 Asia/Ho_Chi_Minh] PHP Fatal error:  Uncaught Error: Failed opening required 'api/ajax_check_backup_status.php' (include_path='.;C:\php\pear') in D:\wamp64\www\tpanel\router.php:81
+Stack trace:
+#0 {main}
+  thrown in D:\wamp64\www\tpanel\router.php on line 81
+[13-Nov-2025 14:15:19 Asia/Ho_Chi_Minh] PHP Warning:  require(api/ajax_check_backup_status.php): Failed to open stream: No such file or directory in D:\wamp64\www\tpanel\router.php on line 81
+[13-Nov-2025 14:15:19 Asia/Ho_Chi_Minh] PHP Stack trace:
+[13-Nov-2025 14:15:19 Asia/Ho_Chi_Minh] PHP   1. {main}() D:\wamp64\www\tpanel\router.php:0
+[13-Nov-2025 14:15:19 Asia/Ho_Chi_Minh] PHP Fatal error:  Uncaught Error: Failed opening required 'api/ajax_check_backup_status.php' (include_path='.;C:\php\pear') in D:\wamp64\www\tpanel\router.php:81
+Stack trace:
+#0 {main}
+  thrown in D:\wamp64\www\tpanel\router.php on line 81
+[13-Nov-2025 14:15:24 Asia/Ho_Chi_Minh] PHP Warning:  require(api/ajax_check_backup_status.php): Failed to open stream: No such file or directory in D:\wamp64\www\tpanel\router.php on line 81
+[13-Nov-2025 14:15:24 Asia/Ho_Chi_Minh] PHP Stack trace:
+[13-Nov-2025 14:15:24 Asia/Ho_Chi_Minh] PHP   1. {main}() D:\wamp64\www\tpanel\router.php:0
+[13-Nov-2025 14:15:24 Asia/Ho_Chi_Minh] PHP Fatal error:  Uncaught Error: Failed opening required 'api/ajax_check_backup_status.php' (include_path='.;C:\php\pear') in D:\wamp64\www\tpanel\router.php:81
+Stack trace:
+#0 {main}
+  thrown in D:\wamp64\www\tpanel\router.php on line 81
+[13-Nov-2025 14:15:29 Asia/Ho_Chi_Minh] PHP Warning:  require(api/ajax_check_backup_status.php): Failed to open stream: No such file or directory in D:\wamp64\www\tpanel\router.php on line 81
+[13-Nov-2025 14:15:29 Asia/Ho_Chi_Minh] PHP Stack trace:
+[13-Nov-2025 14:15:29 Asia/Ho_Chi_Minh] PHP   1. {main}() D:\wamp64\www\tpanel\router.php:0
+[13-Nov-2025 14:15:29 Asia/Ho_Chi_Minh] PHP Fatal error:  Uncaught Error: Failed opening required 'api/ajax_check_backup_status.php' (include_path='.;C:\php\pear') in D:\wamp64\www\tpanel\router.php:81
+Stack trace:
+#0 {main}
+  thrown in D:\wamp64\www\tpanel\router.php on line 81
+[13-Nov-2025 14:15:35 Asia/Ho_Chi_Minh] PHP Warning:  require(api/ajax_check_backup_status.php): Failed to open stream: No such file or directory in D:\wamp64\www\tpanel\router.php on line 81
+[13-Nov-2025 14:15:35 Asia/Ho_Chi_Minh] PHP Stack trace:
+[13-Nov-2025 14:15:35 Asia/Ho_Chi_Minh] PHP   1. {main}() D:\wamp64\www\tpanel\router.php:0
+[13-Nov-2025 14:15:35 Asia/Ho_Chi_Minh] PHP Fatal error:  Uncaught Error: Failed opening required 'api/ajax_check_backup_status.php' (include_path='.;C:\php\pear') in D:\wamp64\www\tpanel\router.php:81
+Stack trace:
+#0 {main}
+  thrown in D:\wamp64\www\tpanel\router.php on line 81
+[13-Nov-2025 14:15:41 Asia/Ho_Chi_Minh] PHP Warning:  require(api/ajax_check_backup_status.php): Failed to open stream: No such file or directory in D:\wamp64\www\tpanel\router.php on line 81
+[13-Nov-2025 14:15:41 Asia/Ho_Chi_Minh] PHP Stack trace:
+[13-Nov-2025 14:15:41 Asia/Ho_Chi_Minh] PHP   1. {main}() D:\wamp64\www\tpanel\router.php:0
+[13-Nov-2025 14:15:41 Asia/Ho_Chi_Minh] PHP Fatal error:  Uncaught Error: Failed opening required 'api/ajax_check_backup_status.php' (include_path='.;C:\php\pear') in D:\wamp64\www\tpanel\router.php:81
+Stack trace:
+#0 {main}
+  thrown in D:\wamp64\www\tpanel\router.php on line 81
+[13-Nov-2025 14:15:47 Asia/Ho_Chi_Minh] PHP Warning:  require(api/ajax_check_backup_status.php): Failed to open stream: No such file or directory in D:\wamp64\www\tpanel\router.php on line 81
+[13-Nov-2025 14:15:47 Asia/Ho_Chi_Minh] PHP Stack trace:
+[13-Nov-2025 14:15:47 Asia/Ho_Chi_Minh] PHP   1. {main}() D:\wamp64\www\tpanel\router.php:0
+[13-Nov-2025 14:15:47 Asia/Ho_Chi_Minh] PHP Fatal error:  Uncaught Error: Failed opening required 'api/ajax_check_backup_status.php' (include_path='.;C:\php\pear') in D:\wamp64\www\tpanel\router.php:81
+Stack trace:
+#0 {main}
+  thrown in D:\wamp64\www\tpanel\router.php on line 81
+[13-Nov-2025 14:15:53 Asia/Ho_Chi_Minh] PHP Warning:  require(api/ajax_check_backup_status.php): Failed to open stream: No such file or directory in D:\wamp64\www\tpanel\router.php on line 81
+[13-Nov-2025 14:15:53 Asia/Ho_Chi_Minh] PHP Stack trace:
+[13-Nov-2025 14:15:53 Asia/Ho_Chi_Minh] PHP   1. {main}() D:\wamp64\www\tpanel\router.php:0
+[13-Nov-2025 14:15:53 Asia/Ho_Chi_Minh] PHP Fatal error:  Uncaught Error: Failed opening required 'api/ajax_check_backup_status.php' (include_path='.;C:\php\pear') in D:\wamp64\www\tpanel\router.php:81
+Stack trace:
+#0 {main}
+  thrown in D:\wamp64\www\tpanel\router.php on line 81
+[13-Nov-2025 14:15:59 Asia/Ho_Chi_Minh] PHP Warning:  require(api/ajax_check_backup_status.php): Failed to open stream: No such file or directory in D:\wamp64\www\tpanel\router.php on line 81
+[13-Nov-2025 14:15:59 Asia/Ho_Chi_Minh] PHP Stack trace:
+[13-Nov-2025 14:15:59 Asia/Ho_Chi_Minh] PHP   1. {main}() D:\wamp64\www\tpanel\router.php:0
+[13-Nov-2025 14:15:59 Asia/Ho_Chi_Minh] PHP Fatal error:  Uncaught Error: Failed opening required 'api/ajax_check_backup_status.php' (include_path='.;C:\php\pear') in D:\wamp64\www\tpanel\router.php:81
+Stack trace:
+#0 {main}
+  thrown in D:\wamp64\www\tpanel\router.php on line 81
+[13-Nov-2025 14:16:05 Asia/Ho_Chi_Minh] PHP Warning:  require(api/ajax_check_backup_status.php): Failed to open stream: No such file or directory in D:\wamp64\www\tpanel\router.php on line 81
+[13-Nov-2025 14:16:05 Asia/Ho_Chi_Minh] PHP Stack trace:
+[13-Nov-2025 14:16:05 Asia/Ho_Chi_Minh] PHP   1. {main}() D:\wamp64\www\tpanel\router.php:0
+[13-Nov-2025 14:16:05 Asia/Ho_Chi_Minh] PHP Fatal error:  Uncaught Error: Failed opening required 'api/ajax_check_backup_status.php' (include_path='.;C:\php\pear') in D:\wamp64\www\tpanel\router.php:81
+Stack trace:
+#0 {main}
+  thrown in D:\wamp64\www\tpanel\router.php on line 81
+[13-Nov-2025 14:16:11 Asia/Ho_Chi_Minh] PHP Warning:  require(api/ajax_check_backup_status.php): Failed to open stream: No such file or directory in D:\wamp64\www\tpanel\router.php on line 81
+[13-Nov-2025 14:16:11 Asia/Ho_Chi_Minh] PHP Stack trace:
+[13-Nov-2025 14:16:11 Asia/Ho_Chi_Minh] PHP   1. {main}() D:\wamp64\www\tpanel\router.php:0
+[13-Nov-2025 14:16:11 Asia/Ho_Chi_Minh] PHP Fatal error:  Uncaught Error: Failed opening required 'api/ajax_check_backup_status.php' (include_path='.;C:\php\pear') in D:\wamp64\www\tpanel\router.php:81
+Stack trace:
+#0 {main}
+  thrown in D:\wamp64\www\tpanel\router.php on line 81
+[13-Nov-2025 14:16:17 Asia/Ho_Chi_Minh] PHP Warning:  require(api/ajax_check_backup_status.php): Failed to open stream: No such file or directory in D:\wamp64\www\tpanel\router.php on line 81
+[13-Nov-2025 14:16:17 Asia/Ho_Chi_Minh] PHP Stack trace:
+[13-Nov-2025 14:16:17 Asia/Ho_Chi_Minh] PHP   1. {main}() D:\wamp64\www\tpanel\router.php:0
+[13-Nov-2025 14:16:17 Asia/Ho_Chi_Minh] PHP Fatal error:  Uncaught Error: Failed opening required 'api/ajax_check_backup_status.php' (include_path='.;C:\php\pear') in D:\wamp64\www\tpanel\router.php:81
+Stack trace:
+#0 {main}
+  thrown in D:\wamp64\www\tpanel\router.php on line 81
+[13-Nov-2025 14:16:23 Asia/Ho_Chi_Minh] PHP Warning:  require(api/ajax_check_backup_status.php): Failed to open stream: No such file or directory in D:\wamp64\www\tpanel\router.php on line 81
+[13-Nov-2025 14:16:23 Asia/Ho_Chi_Minh] PHP Stack trace:
+[13-Nov-2025 14:16:23 Asia/Ho_Chi_Minh] PHP   1. {main}() D:\wamp64\www\tpanel\router.php:0
+[13-Nov-2025 14:16:23 Asia/Ho_Chi_Minh] PHP Fatal error:  Uncaught Error: Failed opening required 'api/ajax_check_backup_status.php' (include_path='.;C:\php\pear') in D:\wamp64\www\tpanel\router.php:81
+Stack trace:
+#0 {main}
+  thrown in D:\wamp64\www\tpanel\router.php on line 81
+[13-Nov-2025 14:16:29 Asia/Ho_Chi_Minh] PHP Warning:  require(api/ajax_check_backup_status.php): Failed to open stream: No such file or directory in D:\wamp64\www\tpanel\router.php on line 81
+[13-Nov-2025 14:16:29 Asia/Ho_Chi_Minh] PHP Stack trace:
+[13-Nov-2025 14:16:29 Asia/Ho_Chi_Minh] PHP   1. {main}() D:\wamp64\www\tpanel\router.php:0
+[13-Nov-2025 14:16:29 Asia/Ho_Chi_Minh] PHP Fatal error:  Uncaught Error: Failed opening required 'api/ajax_check_backup_status.php' (include_path='.;C:\php\pear') in D:\wamp64\www\tpanel\router.php:81
+Stack trace:
+#0 {main}
+  thrown in D:\wamp64\www\tpanel\router.php on line 81
+[13-Nov-2025 14:16:35 Asia/Ho_Chi_Minh] PHP Warning:  require(api/ajax_check_backup_status.php): Failed to open stream: No such file or directory in D:\wamp64\www\tpanel\router.php on line 81
+[13-Nov-2025 14:16:35 Asia/Ho_Chi_Minh] PHP Stack trace:
+[13-Nov-2025 14:16:35 Asia/Ho_Chi_Minh] PHP   1. {main}() D:\wamp64\www\tpanel\router.php:0
+[13-Nov-2025 14:16:35 Asia/Ho_Chi_Minh] PHP Fatal error:  Uncaught Error: Failed opening required 'api/ajax_check_backup_status.php' (include_path='.;C:\php\pear') in D:\wamp64\www\tpanel\router.php:81
+Stack trace:
+#0 {main}
+  thrown in D:\wamp64\www\tpanel\router.php on line 81
+[13-Nov-2025 14:16:41 Asia/Ho_Chi_Minh] PHP Warning:  require(api/ajax_check_backup_status.php): Failed to open stream: No such file or directory in D:\wamp64\www\tpanel\router.php on line 81
+[13-Nov-2025 14:16:41 Asia/Ho_Chi_Minh] PHP Stack trace:
+[13-Nov-2025 14:16:41 Asia/Ho_Chi_Minh] PHP   1. {main}() D:\wamp64\www\tpanel\router.php:0
+[13-Nov-2025 14:16:41 Asia/Ho_Chi_Minh] PHP Fatal error:  Uncaught Error: Failed opening required 'api/ajax_check_backup_status.php' (include_path='.;C:\php\pear') in D:\wamp64\www\tpanel\router.php:81
+Stack trace:
+#0 {main}
+  thrown in D:\wamp64\www\tpanel\router.php on line 81
+[13-Nov-2025 14:16:47 Asia/Ho_Chi_Minh] PHP Warning:  require(api/ajax_check_backup_status.php): Failed to open stream: No such file or directory in D:\wamp64\www\tpanel\router.php on line 81
+[13-Nov-2025 14:16:47 Asia/Ho_Chi_Minh] PHP Stack trace:
+[13-Nov-2025 14:16:47 Asia/Ho_Chi_Minh] PHP   1. {main}() D:\wamp64\www\tpanel\router.php:0
+[13-Nov-2025 14:16:47 Asia/Ho_Chi_Minh] PHP Fatal error:  Uncaught Error: Failed opening required 'api/ajax_check_backup_status.php' (include_path='.;C:\php\pear') in D:\wamp64\www\tpanel\router.php:81
+Stack trace:
+#0 {main}
+  thrown in D:\wamp64\www\tpanel\router.php on line 81
+[13-Nov-2025 14:16:52 Asia/Ho_Chi_Minh] PHP Warning:  require(api/ajax_check_backup_status.php): Failed to open stream: No such file or directory in D:\wamp64\www\tpanel\router.php on line 81
+[13-Nov-2025 14:16:52 Asia/Ho_Chi_Minh] PHP Stack trace:
+[13-Nov-2025 14:16:52 Asia/Ho_Chi_Minh] PHP   1. {main}() D:\wamp64\www\tpanel\router.php:0
+[13-Nov-2025 14:16:52 Asia/Ho_Chi_Minh] PHP Fatal error:  Uncaught Error: Failed opening required 'api/ajax_check_backup_status.php' (include_path='.;C:\php\pear') in D:\wamp64\www\tpanel\router.php:81
+Stack trace:
+#0 {main}
+  thrown in D:\wamp64\www\tpanel\router.php on line 81
+[13-Nov-2025 14:16:58 Asia/Ho_Chi_Minh] PHP Warning:  require(api/ajax_check_backup_status.php): Failed to open stream: No such file or directory in D:\wamp64\www\tpanel\router.php on line 81
+[13-Nov-2025 14:16:58 Asia/Ho_Chi_Minh] PHP Stack trace:
+[13-Nov-2025 14:16:58 Asia/Ho_Chi_Minh] PHP   1. {main}() D:\wamp64\www\tpanel\router.php:0
+[13-Nov-2025 14:16:58 Asia/Ho_Chi_Minh] PHP Fatal error:  Uncaught Error: Failed opening required 'api/ajax_check_backup_status.php' (include_path='.;C:\php\pear') in D:\wamp64\www\tpanel\router.php:81
+Stack trace:
+#0 {main}
+  thrown in D:\wamp64\www\tpanel\router.php on line 81
+[13-Nov-2025 14:17:04 Asia/Ho_Chi_Minh] PHP Warning:  require(api/ajax_check_backup_status.php): Failed to open stream: No such file or directory in D:\wamp64\www\tpanel\router.php on line 81
+[13-Nov-2025 14:17:04 Asia/Ho_Chi_Minh] PHP Stack trace:
+[13-Nov-2025 14:17:04 Asia/Ho_Chi_Minh] PHP   1. {main}() D:\wamp64\www\tpanel\router.php:0
+[13-Nov-2025 14:17:04 Asia/Ho_Chi_Minh] PHP Fatal error:  Uncaught Error: Failed opening required 'api/ajax_check_backup_status.php' (include_path='.;C:\php\pear') in D:\wamp64\www\tpanel\router.php:81
+Stack trace:
+#0 {main}
+  thrown in D:\wamp64\www\tpanel\router.php on line 81
+[13-Nov-2025 14:26:29 Asia/Ho_Chi_Minh] PHP Warning:  require_once(includes/HostingerBackupManager.php): Failed to open stream: No such file or directory in D:\wamp64\www\tpanel\app\website_manage.php on line 260
+[13-Nov-2025 14:26:29 Asia/Ho_Chi_Minh] PHP Stack trace:
+[13-Nov-2025 14:26:29 Asia/Ho_Chi_Minh] PHP   1. {main}() D:\wamp64\www\tpanel\router.php:0
+[13-Nov-2025 14:26:29 Asia/Ho_Chi_Minh] PHP   2. require() D:\wamp64\www\tpanel\router.php:114
+[13-Nov-2025 14:26:29 Asia/Ho_Chi_Minh] PHP Fatal error:  Uncaught Error: Failed opening required 'includes/HostingerBackupManager.php' (include_path='.;C:\php\pear') in D:\wamp64\www\tpanel\app\website_manage.php:260
+Stack trace:
+#0 D:\wamp64\www\tpanel\router.php(114): require()
+#1 {main}
+  thrown in D:\wamp64\www\tpanel\app\website_manage.php on line 260

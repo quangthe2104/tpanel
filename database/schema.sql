@@ -68,13 +68,16 @@ CREATE TABLE IF NOT EXISTS `backups` (
   `type` enum('full','files','database') NOT NULL DEFAULT 'full',
   `filename` varchar(255) NOT NULL,
   `file_path` varchar(500) NOT NULL,
+  `remote_path` varchar(500) DEFAULT NULL COMMENT 'Đường dẫn file backup trên server website',
   `file_size` bigint(20) DEFAULT NULL,
   `status` enum('completed','failed','in_progress') NOT NULL DEFAULT 'in_progress',
+  `expires_at` datetime DEFAULT NULL COMMENT 'Thời gian file sẽ tự động bị xóa (6 tiếng sau khi tạo)',
   `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   KEY `idx_website_id` (`website_id`),
   KEY `idx_user_id` (`user_id`),
   KEY `idx_created_at` (`created_at`),
+  KEY `idx_expires_at` (`expires_at`),
   CONSTRAINT `fk_backup_website` FOREIGN KEY (`website_id`) REFERENCES `websites` (`id`) ON DELETE CASCADE,
   CONSTRAINT `fk_backup_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

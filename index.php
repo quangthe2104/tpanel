@@ -1,5 +1,5 @@
 <?php
-require_once 'includes/functions.php';
+require_once __DIR__ . '/includes/helpers/functions.php';
 
 $auth = new Auth();
 $auth->requireLogin();
@@ -24,7 +24,7 @@ if ($auth->isAdmin()) {
     )['count'];
 }
 
-include 'includes/header.php';
+include __DIR__ . '/includes/header.php';
 ?>
 
 <div class="row mb-4">
@@ -82,14 +82,29 @@ include 'includes/header.php';
             </div>
             <div class="card-body">
                 <?php
-                $logs = $db->fetchAll(
-                    "SELECT al.*, u.username, w.name as website_name 
-                     FROM activity_logs al 
-                     LEFT JOIN users u ON al.user_id = u.id 
-                     LEFT JOIN websites w ON al.website_id = w.id 
-                     ORDER BY al.created_at DESC 
-                     LIMIT 10"
-                );
+                // Lọc hoạt động: Admin thấy tất cả, User chỉ thấy hoạt động của mình
+                $userId = $auth->getUserId();
+                if ($auth->isAdmin()) {
+                    $logs = $db->fetchAll(
+                        "SELECT al.*, u.username, w.name as website_name 
+                         FROM activity_logs al 
+                         LEFT JOIN users u ON al.user_id = u.id 
+                         LEFT JOIN websites w ON al.website_id = w.id 
+                         ORDER BY al.created_at DESC 
+                         LIMIT 20"
+                    );
+                } else {
+                    $logs = $db->fetchAll(
+                        "SELECT al.*, u.username, w.name as website_name 
+                         FROM activity_logs al 
+                         LEFT JOIN users u ON al.user_id = u.id 
+                         LEFT JOIN websites w ON al.website_id = w.id 
+                         WHERE al.user_id = ?
+                         ORDER BY al.created_at DESC 
+                         LIMIT 20",
+                        [$userId]
+                    );
+                }
                 
                 if (empty($logs)):
                 ?>
@@ -100,20 +115,26 @@ include 'includes/header.php';
                             <thead>
                                 <tr>
                                     <th>Thời gian</th>
+                                    <?php if ($auth->isAdmin()): ?>
                                     <th>Người dùng</th>
+                                    <?php endif; ?>
                                     <th>Website</th>
-                                    <th>Hành động</th>
-                                    <th>Mô tả</th>
+                                    <th>Hoạt động</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 <?php foreach ($logs as $log): ?>
                                 <tr>
                                     <td><?php echo formatDate($log['created_at']); ?></td>
+                                    <?php if ($auth->isAdmin()): ?>
                                     <td><?php echo escape($log['username'] ?? 'N/A'); ?></td>
-                                    <td><?php echo escape($log['website_name'] ?? 'N/A'); ?></td>
-                                    <td><span class="badge bg-info"><?php echo escape($log['action']); ?></span></td>
-                                    <td><?php echo escape($log['description'] ?? ''); ?></td>
+                                    <?php endif; ?>
+                                    <td><?php echo escape($log['website_name'] ?? 'Hệ thống'); ?></td>
+                                    <td>
+                                        <span class="badge bg-info">
+                                            <?php echo formatActivityAction($log['action'], $log['description']); ?>
+                                        </span>
+                                    </td>
                                 </tr>
                                 <?php endforeach; ?>
                             </tbody>
@@ -125,4 +146,4 @@ include 'includes/header.php';
     </div>
 </div>
 
-<?php include 'includes/footer.php'; ?>
+<?php include __DIR__ . '/includes/footer.php'; ?>
