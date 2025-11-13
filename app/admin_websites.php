@@ -22,7 +22,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $sftpPort = $security->validateInt($_POST['sftp_port'] ?? 22, 1, 65535) ?: 22;
             $sftpUsername = $security->sanitizeString($_POST['sftp_username'] ?? '', 255);
             $sftpPassword = $_POST['sftp_password'] ?? '';
-            $dbHost = $security->sanitizeString($_POST['db_host'] ?? 'localhost', 255);
+            $dbHost = trim($_POST['db_host'] ?? '');
+            $dbHost = $dbHost === '' ? 'localhost' : $security->sanitizeString($dbHost, 255);
             $dbName = $security->sanitizeString($_POST['db_name'] ?? '', 255);
             $dbUser = $security->sanitizeString($_POST['db_user'] ?? '', 255);
             $dbPassword = $_POST['db_password'] ?? '';
@@ -54,7 +55,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $sftpPassword = $_POST['sftp_password'] ?? '';
                 
                 // Get database info - always update if provided
-                $dbHost = $security->sanitizeString(trim($_POST['db_host'] ?? ''), 255);
+                $dbHost = trim($_POST['db_host'] ?? '');
+                $dbHost = $dbHost === '' ? 'localhost' : $security->sanitizeString($dbHost, 255);
                 $dbName = $security->sanitizeString(trim($_POST['db_name'] ?? ''), 255);
                 $dbUser = $security->sanitizeString(trim($_POST['db_user'] ?? ''), 255);
                 $dbPassword = $_POST['db_password'] ?? '';
@@ -276,8 +278,8 @@ include __DIR__ . '/../includes/header.php';
                     
                     <div class="mb-3">
                         <label class="form-label">DB Host</label>
-                        <input type="text" name="db_host" class="form-control" value="<?php echo $editWebsite ? escape($editWebsite['db_host'] ?? '') : ''; ?>" placeholder="mysql.example.com hoặc localhost">
-                        <small class="text-muted">IP hoặc hostname của MySQL server. Lưu ý: MySQL server phải cho phép kết nối từ IP của server Tpanel.</small>
+                        <input type="text" name="db_host" class="form-control" value="<?php echo $editWebsite ? escape($editWebsite['db_host'] ?? '') : ''; ?>" placeholder="localhost (mặc định nếu để trống)">
+                        <small class="text-muted">IP hoặc hostname của MySQL server. Để trống sẽ dùng localhost. Lưu ý: MySQL server phải cho phép kết nối từ IP của server Tpanel.</small>
                     </div>
                     
                     <div class="mb-3">
