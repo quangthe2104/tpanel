@@ -39,75 +39,76 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             
             $auth->logActivity($auth->getUserId(), null, 'website_added', "Website: $name");
             $success = "Thêm website thành công!";
-    } elseif (isset($_POST['edit_website'])) {
-        $id = $security->validateInt($_POST['id'] ?? 0, 1);
-        if (!$id) {
-            $error = 'ID website không hợp lệ';
-        } else {
-            $name = $security->sanitizeString($_POST['name'] ?? '', 255);
-            $domain = $security->sanitizeString($_POST['domain'] ?? '', 255);
-            $path = $security->sanitizePath($_POST['path'] ?? '');
-            $connectionType = in_array($_POST['connection_type'] ?? 'sftp', ['sftp', 'ftp']) ? $_POST['connection_type'] : 'sftp';
-            $sftpHost = $security->sanitizeString($_POST['sftp_host'] ?? '', 255);
-            $sftpPort = $security->validateInt($_POST['sftp_port'] ?? 22, 1, 65535) ?: 22;
-            $sftpUsername = $security->sanitizeString($_POST['sftp_username'] ?? '', 255);
-            $sftpPassword = $_POST['sftp_password'] ?? '';
+        } elseif (isset($_POST['edit_website'])) {
+            $id = $security->validateInt($_POST['id'] ?? 0, 1);
+            if (!$id) {
+                $error = 'ID website không hợp lệ';
+            } else {
+                $name = $security->sanitizeString($_POST['name'] ?? '', 255);
+                $domain = $security->sanitizeString($_POST['domain'] ?? '', 255);
+                $path = $security->sanitizePath($_POST['path'] ?? '');
+                $connectionType = in_array($_POST['connection_type'] ?? 'sftp', ['sftp', 'ftp']) ? $_POST['connection_type'] : 'sftp';
+                $sftpHost = $security->sanitizeString($_POST['sftp_host'] ?? '', 255);
+                $sftpPort = $security->validateInt($_POST['sftp_port'] ?? 22, 1, 65535) ?: 22;
+                $sftpUsername = $security->sanitizeString($_POST['sftp_username'] ?? '', 255);
+                $sftpPassword = $_POST['sftp_password'] ?? '';
+                
+                // Get database info - always update if provided
+                $dbHost = $security->sanitizeString(trim($_POST['db_host'] ?? ''), 255);
+                $dbName = $security->sanitizeString(trim($_POST['db_name'] ?? ''), 255);
+                $dbUser = $security->sanitizeString(trim($_POST['db_user'] ?? ''), 255);
+                $dbPassword = $_POST['db_password'] ?? '';
+                $totalStorage = !empty($_POST['total_storage']) ? $security->validateInt($_POST['total_storage'], 0, 1000000) : null;
+                // Convert GB to bytes
+                if ($totalStorage) {
+                    $totalStorage = $totalStorage * 1024 * 1024 * 1024;
+                }
+                
+                // Get current website data to preserve password if not provided
+                $currentWebsite = $db->fetchOne("SELECT * FROM websites WHERE id = ?", [$id]);
             
-            // Get database info - always update if provided
-            $dbHost = $security->sanitizeString(trim($_POST['db_host'] ?? ''), 255);
-            $dbName = $security->sanitizeString(trim($_POST['db_name'] ?? ''), 255);
-            $dbUser = $security->sanitizeString(trim($_POST['db_user'] ?? ''), 255);
-            $dbPassword = $_POST['db_password'] ?? '';
-            $totalStorage = !empty($_POST['total_storage']) ? $security->validateInt($_POST['total_storage'], 0, 1000000) : null;
-        // Convert GB to bytes
-        if ($totalStorage) {
-            $totalStorage = $totalStorage * 1024 * 1024 * 1024;
-        }
-        
-            // Get current website data to preserve password if not provided
-            $currentWebsite = $db->fetchOne("SELECT * FROM websites WHERE id = ?", [$id]);
-        
-        if ($sftpPassword) {
-            // Update SFTP password
-            if ($dbPassword) {
-                // Update both passwords
-                $db->query(
-                    "UPDATE websites SET name = ?, domain = ?, path = ?, connection_type = ?, sftp_host = ?, sftp_port = ?, sftp_username = ?, sftp_password = ?, db_host = ?, db_name = ?, db_user = ?, db_password = ?, total_storage = ? WHERE id = ?",
-                    [$name, $domain, $path, $connectionType, $sftpHost, $sftpPort, $sftpUsername, $sftpPassword, $dbHost, $dbName, $dbUser, $dbPassword, $totalStorage, $id]
-                );
-            } else {
-                // Update SFTP password but keep DB password
-                $db->query(
-                    "UPDATE websites SET name = ?, domain = ?, path = ?, connection_type = ?, sftp_host = ?, sftp_port = ?, sftp_username = ?, sftp_password = ?, db_host = ?, db_name = ?, db_user = ?, total_storage = ? WHERE id = ?",
-                    [$name, $domain, $path, $connectionType, $sftpHost, $sftpPort, $sftpUsername, $sftpPassword, $dbHost, $dbName, $dbUser, $totalStorage, $id]
-                );
+                if ($sftpPassword) {
+                    // Update SFTP password
+                    if ($dbPassword) {
+                        // Update both passwords
+                        $db->query(
+                            "UPDATE websites SET name = ?, domain = ?, path = ?, connection_type = ?, sftp_host = ?, sftp_port = ?, sftp_username = ?, sftp_password = ?, db_host = ?, db_name = ?, db_user = ?, db_password = ?, total_storage = ? WHERE id = ?",
+                            [$name, $domain, $path, $connectionType, $sftpHost, $sftpPort, $sftpUsername, $sftpPassword, $dbHost, $dbName, $dbUser, $dbPassword, $totalStorage, $id]
+                        );
+                    } else {
+                        // Update SFTP password but keep DB password
+                        $db->query(
+                            "UPDATE websites SET name = ?, domain = ?, path = ?, connection_type = ?, sftp_host = ?, sftp_port = ?, sftp_username = ?, sftp_password = ?, db_host = ?, db_name = ?, db_user = ?, total_storage = ? WHERE id = ?",
+                            [$name, $domain, $path, $connectionType, $sftpHost, $sftpPort, $sftpUsername, $sftpPassword, $dbHost, $dbName, $dbUser, $totalStorage, $id]
+                        );
+                    }
+                } else {
+                    // Don't update SFTP password
+                    if ($dbPassword) {
+                        // Update DB password only
+                        $db->query(
+                            "UPDATE websites SET name = ?, domain = ?, path = ?, connection_type = ?, sftp_host = ?, sftp_port = ?, sftp_username = ?, db_host = ?, db_name = ?, db_user = ?, db_password = ?, total_storage = ? WHERE id = ?",
+                            [$name, $domain, $path, $connectionType, $sftpHost, $sftpPort, $sftpUsername, $dbHost, $dbName, $dbUser, $dbPassword, $totalStorage, $id]
+                        );
+                    } else {
+                        // Keep both passwords, but update other DB fields
+                        $db->query(
+                            "UPDATE websites SET name = ?, domain = ?, path = ?, connection_type = ?, sftp_host = ?, sftp_port = ?, sftp_username = ?, db_host = ?, db_name = ?, db_user = ?, total_storage = ? WHERE id = ?",
+                            [$name, $domain, $path, $connectionType, $sftpHost, $sftpPort, $sftpUsername, $dbHost, $dbName, $dbUser, $totalStorage, $id]
+                        );
+                    }
+                }
+                
+                $auth->logActivity($auth->getUserId(), $id, 'website_updated', "Website: $name");
+                $success = "Cập nhật website thành công!";
             }
-        } else {
-            // Don't update SFTP password
-            if ($dbPassword) {
-                // Update DB password only
-                $db->query(
-                    "UPDATE websites SET name = ?, domain = ?, path = ?, connection_type = ?, sftp_host = ?, sftp_port = ?, sftp_username = ?, db_host = ?, db_name = ?, db_user = ?, db_password = ?, total_storage = ? WHERE id = ?",
-                    [$name, $domain, $path, $connectionType, $sftpHost, $sftpPort, $sftpUsername, $dbHost, $dbName, $dbUser, $dbPassword, $totalStorage, $id]
-                );
-            } else {
-                // Keep both passwords, but update other DB fields
-                $db->query(
-                    "UPDATE websites SET name = ?, domain = ?, path = ?, connection_type = ?, sftp_host = ?, sftp_port = ?, sftp_username = ?, db_host = ?, db_name = ?, db_user = ?, total_storage = ? WHERE id = ?",
-                    [$name, $domain, $path, $connectionType, $sftpHost, $sftpPort, $sftpUsername, $dbHost, $dbName, $dbUser, $totalStorage, $id]
-                );
+        } elseif (isset($_POST['delete_website'])) {
+            $id = $security->validateInt($_POST['id'] ?? 0, 1);
+            if ($id) {
+                $db->query("DELETE FROM websites WHERE id = ?", [$id]);
+                $auth->logActivity($auth->getUserId(), $id, 'website_deleted', "Website ID: $id");
+                $success = "Xóa website thành công!";
             }
-        }
-        
-            $auth->logActivity($auth->getUserId(), $id, 'website_updated', "Website: $name");
-            $success = "Cập nhật website thành công!";
-        }
-    } elseif (isset($_POST['delete_website'])) {
-        $id = $security->validateInt($_POST['id'] ?? 0, 1);
-        if ($id) {
-            $db->query("DELETE FROM websites WHERE id = ?", [$id]);
-            $auth->logActivity($auth->getUserId(), $id, 'website_deleted', "Website ID: $id");
-            $success = "Xóa website thành công!";
         }
     } catch (Exception $e) {
         error_log("Error in admin_websites.php: " . $e->getMessage() . " | Trace: " . $e->getTraceAsString());
