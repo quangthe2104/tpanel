@@ -4,7 +4,7 @@
  * Routes friendly URLs to actual PHP files
  */
 
-require_once 'includes/helpers/functions.php';
+require_once __DIR__ . '/includes/helpers/functions.php';
 
 // Get the request URI
 $requestUri = $_SERVER['REQUEST_URI'];
@@ -32,7 +32,7 @@ foreach ($segments as $i => $segment) {
 
 // Handle simple routes first
 if (empty($segments)) {
-    require 'index.php';
+    require __DIR__ . '/index.php';
     exit;
 }
 
@@ -40,22 +40,22 @@ $route = $segments[0];
 
 // Simple routes
 if ($route === 'login') {
-    require 'login.php';
+    require __DIR__ . '/login.php';
     exit;
 }
 
 if ($route === 'logout') {
-    require 'logout.php';
+    require __DIR__ . '/logout.php';
     exit;
 }
 
 if ($route === 'change-password') {
-    require 'app/change_password.php';
+    require __DIR__ . '/app/change_password.php';
     exit;
 }
 
 if ($route === 'my-websites') {
-    require 'app/my_websites.php';
+    require __DIR__ . '/app/my_websites.php';
     exit;
 }
 
@@ -63,10 +63,10 @@ if ($route === 'my-websites') {
 if (!empty($segments) && $segments[0] === 'ajax') {
     $ajaxFile = $segments[1] ?? '';
     $ajaxFiles = [
-        'check-backup-status' => 'api/ajax_check_backup_status.php',
-        'get-disk-usage' => 'api/ajax_get_disk_usage.php',
-        'update-storage' => 'api/ajax_update_storage.php',
-        'get-user-permissions' => 'api/ajax_get_user_permissions.php',
+        'check-backup-status' => __DIR__ . '/api/ajax_check_backup_status.php',
+        'get-disk-usage' => __DIR__ . '/api/ajax_get_disk_usage.php',
+        'update-storage' => __DIR__ . '/api/ajax_update_storage.php',
+        'get-user-permissions' => __DIR__ . '/api/ajax_get_user_permissions.php',
     ];
     
     if (isset($ajaxFiles[$ajaxFile])) {
@@ -111,7 +111,7 @@ if (!empty($segments) && $segments[0] === 'website') {
             }
         }
     }
-    require 'app/website_manage.php';
+    require __DIR__ . '/app/website_manage.php';
     exit;
 }
 
@@ -121,7 +121,7 @@ if (!empty($segments) && $segments[0] === 'admin') {
         if (isset($segments[2]) && $segments[2] === 'edit' && isset($segments[3])) {
             $_GET['edit'] = $segments[3];
         }
-        require 'app/admin_websites.php';
+        require __DIR__ . '/app/admin_websites.php';
         exit;
     }
     
@@ -131,22 +131,22 @@ if (!empty($segments) && $segments[0] === 'admin') {
         } elseif (isset($segments[2]) && $segments[2] === 'assign' && isset($segments[3])) {
             $_GET['assign'] = $segments[3];
         }
-        require 'app/admin_users.php';
+        require __DIR__ . '/app/admin_users.php';
         exit;
     }
     
     // Default admin page
-    require 'app/admin_websites.php';
+    require __DIR__ . '/app/admin_websites.php';
     exit;
 }
 
 // Handle backup download: /backup/{id}/download
 if (!empty($segments) && $segments[0] === 'backup' && isset($segments[1])) {
     $_GET['id'] = $segments[1];
-    require 'api/download_backup.php';
+    require __DIR__ . '/api/download_backup.php';
     exit;
 }
 
 // If no route matched, show 404 or index
-require 'index.php';
+require __DIR__ . '/index.php';
 

@@ -4,7 +4,7 @@
  * Chạy script này để cài đặt database tự động
  */
 
-require_once 'config/config.php';
+require_once __DIR__ . '/config/config.php';
 require_once __DIR__ . '/includes/classes/Database.php';
 
 // Check if already installed
