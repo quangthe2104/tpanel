@@ -1,16 +1,21 @@
 <?php
-require_once __DIR__ . '/../includes/helpers/functions.php';
-require_once __DIR__ . '/../includes/classes/HostingerFileManager.php';
+// Tắt tất cả output buffering NGAY TỪ ĐẦU (trước khi include bất cứ file nào)
+while (ob_get_level()) {
+    ob_end_clean();
+}
+if (ob_get_level() === 0) {
+    // Đảm bảo không có output buffering
+    ini_set('output_buffering', 0);
+    ini_set('zlib.output_compression', 0);
+}
 
 // Tăng timeout cho file lớn (2GB có thể mất 10-20 phút tùy tốc độ mạng)
 set_time_limit(0); // Không giới hạn thời gian
 ini_set('max_execution_time', 0);
 ini_set('memory_limit', '512M'); // Chỉ cần 512M vì dùng streaming
 
-// Tắt tất cả output buffering ngay từ đầu
-while (ob_get_level()) {
-    ob_end_clean();
-}
+require_once __DIR__ . '/../includes/helpers/functions.php';
+require_once __DIR__ . '/../includes/classes/HostingerFileManager.php';
 
 $auth = new Auth();
 $auth->requireLogin();
@@ -49,16 +54,24 @@ $auth->logActivity($auth->getUserId(), $backup['website_id'], 'backup_downloaded
 $filename = basename($backup['filename']);
 header('Content-Type: application/octet-stream');
 header('Content-Disposition: attachment; filename="' . $filename . '"');
-header('Cache-Control: no-cache, must-revalidate');
+header('Cache-Control: no-cache, must-revalidate, no-store');
 header('Pragma: no-cache');
+header('Expires: 0');
 header('X-Accel-Buffering: no'); // Tắt buffering cho Nginx
+header('X-Accel-Limit-Rate: 0'); // Không giới hạn tốc độ cho Nginx
+header('Connection: close'); // Đóng connection ngay sau khi xong
 
 // Dùng file size từ database nếu có (nhanh hơn query từ server)
 if (!empty($backup['file_size']) && $backup['file_size'] > 0) {
     header('Content-Length: ' . $backup['file_size']);
 }
 
-// Flush headers ngay lập tức để browser biết đang download
+// Flush headers ngay lập tức - QUAN TRỌNG cho server online
+// KHÔNG dùng fastcgi_finish_request() vì nó sẽ ngắt kết nối với client
+// Chỉ flush để gửi headers ngay nhưng vẫn giữ kết nối để stream data
+if (ob_get_level() > 0) {
+    @ob_end_flush();
+}
 flush();
 
 // Download từ server website
