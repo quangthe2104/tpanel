@@ -51,10 +51,23 @@ try {
 
 $db = Database::getInstance();
 
-$backup = $db->fetchOne("SELECT b.*, w.sftp_host, w.sftp_username, w.sftp_password, w.sftp_port, w.connection_type, w.path, w.url 
-                         FROM backups b 
-                         LEFT JOIN websites w ON b.website_id = w.id 
-                         WHERE b.id = ?", [$backupId]);
+// Thử lấy cột url, nếu không có thì bỏ qua (để tương thích với DB chưa migrate)
+try {
+    $backup = $db->fetchOne("SELECT b.*, w.sftp_host, w.sftp_username, w.sftp_password, w.sftp_port, w.connection_type, w.path, w.url, w.domain 
+                             FROM backups b 
+                             LEFT JOIN websites w ON b.website_id = w.id 
+                             WHERE b.id = ?", [$backupId]);
+} catch (Exception $e) {
+    // Fallback nếu cột url chưa tồn tại
+    $backup = $db->fetchOne("SELECT b.*, w.sftp_host, w.sftp_username, w.sftp_password, w.sftp_port, w.connection_type, w.path, w.domain 
+                             FROM backups b 
+                             LEFT JOIN websites w ON b.website_id = w.id 
+                             WHERE b.id = ?", [$backupId]);
+    // Tạo url từ domain nếu có
+    if (!empty($backup['domain'])) {
+        $backup['url'] = 'https://' . $backup['domain'];
+    }
+}
 
 if (!$backup) {
     die('Backup không tồn tại');
