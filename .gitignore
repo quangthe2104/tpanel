@@ -25,6 +25,7 @@ backups/
 # Logs
 *.log
 logs/
+error_log.txt
 
 # OS files
 .DS_Store
