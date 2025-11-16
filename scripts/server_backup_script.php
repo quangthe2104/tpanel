@@ -4,6 +4,9 @@
  * Script này sẽ được upload lên server và tự động thực hiện backup
  */
 
+// Set timezone
+date_default_timezone_set('Asia/Ho_Chi_Minh'); // GMT+7
+
 // Chạy async, không chờ client disconnect
 ignore_user_abort(true);
 set_time_limit(0);
