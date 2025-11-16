@@ -84,7 +84,10 @@ flush();
 if (!empty($backup['remote_path'])) {
     try {
         // Tăng timeout cho kết nối SFTP/FTP
-        ini_set('default_socket_timeout', 300);
+        ini_set('default_socket_timeout', 600); // Tăng lên 10 phút
+        
+        // Log để debug
+        error_log("Download backup #$backupId: Starting connection to {$backup['connection_type']}://{$backup['sftp_host']}");
         
         $fileManager = new HostingerFileManager(
             $backup['sftp_host'],
@@ -94,6 +97,8 @@ if (!empty($backup['remote_path'])) {
             $backup['connection_type'],
             $backup['sftp_port']
         );
+        
+        error_log("Download backup #$backupId: Connected successfully");
         
         // Thử nhiều cách path khác nhau
         $pathsToTry = [
@@ -105,44 +110,49 @@ if (!empty($backup['remote_path'])) {
         
         $filePath = false;
         
-        // Tìm file path (không cần lấy size nữa vì đã có trong header)
+        // Tìm file path
         foreach ($pathsToTry as $tryPath) {
             // Sanitize path
             $tryPath = $security->sanitizePath($tryPath);
-            // Chỉ cần check file exists, không cần lấy size
+            error_log("Download backup #$backupId: Trying path: $tryPath");
+            
             try {
                 if ($fileManager->fileExists($tryPath)) {
                     $filePath = $tryPath;
+                    error_log("Download backup #$backupId: Found file at: $tryPath");
                     break;
                 }
             } catch (Exception $e) {
-                // Tiếp tục thử path khác
+                error_log("Download backup #$backupId: Path $tryPath failed: " . $e->getMessage());
                 continue;
             }
         }
         
         if ($filePath === false) {
-            // Nếu đã gửi headers và data, không thể die() được nữa
-            // Gửi error message dưới dạng text
+            error_log("Download backup #$backupId: ERROR - File not found. Tried paths: " . implode(', ', $pathsToTry));
             echo "\n\nERROR: Không thể tìm thấy file backup trên server.";
             exit;
         }
+        
+        error_log("Download backup #$backupId: Starting stream from: $filePath");
         
         // Stream file trực tiếp (không load vào memory)
         $bytesStreamed = $fileManager->streamFile($filePath);
         
         if ($bytesStreamed === false) {
+            error_log("Download backup #$backupId: ERROR - Stream failed");
             echo "\n\nERROR: Lỗi khi stream file backup từ server.";
             exit;
         }
         
+        error_log("Download backup #$backupId: Stream completed. Bytes: $bytesStreamed");
         exit;
     } catch (Exception $e) {
         // Log lỗi để debug
-        error_log("Download backup error: " . $e->getMessage() . " | Trace: " . $e->getTraceAsString());
+        error_log("Download backup #$backupId ERROR: " . $e->getMessage() . " | File: " . $e->getFile() . " | Line: " . $e->getLine());
+        error_log("Download backup #$backupId Trace: " . $e->getTraceAsString());
         
-        // Nếu đã gửi headers, không thể die() được nữa
-        // Gửi error message dưới dạng text
+        // Gửi error message
         echo "\n\nERROR: Lỗi khi tải file: " . htmlspecialchars($e->getMessage(), ENT_QUOTES, 'UTF-8');
         exit;
     }
