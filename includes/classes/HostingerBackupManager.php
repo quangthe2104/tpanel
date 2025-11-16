@@ -254,11 +254,12 @@ class HostingerBackupManager {
                     $backupFileDeleted = true;
                 }
                 
-                // Xóa các file status, result và log liên quan
+                // Xóa các file status, result, log và SQL liên quan
                 if (!empty($backupName)) {
                     $statusFile = '.tpanel/backups/' . $backupName . '.status';
                     $resultFile = '.tpanel/backups/' . $backupName . '.result';
                     $logFile = '.tpanel/backups/' . $backupName . '.log';
+                    $sqlFile = '.tpanel/backups/' . $backupName . '.sql';
                     
                     try {
                         if ($this->fileManager->deleteFile($statusFile)) {
@@ -279,6 +280,15 @@ class HostingerBackupManager {
                     try {
                         if ($this->fileManager->deleteFile($logFile)) {
                             $deletedFiles[] = $logFile;
+                        }
+                    } catch (Exception $e) {
+                        // Ignore
+                    }
+                    
+                    // Xóa file SQL nếu có (file SQL có thể nằm rời nếu không thêm vào ZIP được)
+                    try {
+                        if ($this->fileManager->deleteFile($sqlFile)) {
+                            $deletedFiles[] = $sqlFile;
                         }
                     } catch (Exception $e) {
                         // Ignore
@@ -375,11 +385,12 @@ class HostingerBackupManager {
         ];
         
         try {
-            // Xóa các file status, result và log liên quan
+            // Xóa các file status, result, log và SQL liên quan
             $backupName = pathinfo($backup['filename'], PATHINFO_FILENAME);
             $statusFilePath = '.tpanel/backups/' . $backupName . '.status';
             $resultFilePath = '.tpanel/backups/' . $backupName . '.result';
             $logFilePath = '.tpanel/backups/' . $backupName . '.log';
+            $sqlFilePath = '.tpanel/backups/' . $backupName . '.sql';
             $backupFilePath = '.tpanel/backups/' . $backup['filename'];
             
             // Xóa file backup chính trên server website
@@ -432,6 +443,16 @@ class HostingerBackupManager {
                 $result = $this->fileManager->deleteFile($logFilePath);
                 if ($result) {
                     $results['log_file'] = true;
+                }
+            } catch (Exception $e) {
+                // Ignore
+            }
+            
+            // Xóa file SQL nếu có (file SQL có thể nằm rời nếu không thêm vào ZIP được)
+            try {
+                $result = $this->fileManager->deleteFile($sqlFilePath);
+                if ($result) {
+                    $results['sql_file'] = true;
                 }
             } catch (Exception $e) {
                 // Ignore
