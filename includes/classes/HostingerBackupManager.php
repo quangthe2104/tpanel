@@ -230,21 +230,35 @@ class HostingerBackupManager {
                 }
                 
                 $backupFileDeleted = false;
+                $backupFileExists = false;
+                
+                // Kiểm tra xem file có tồn tại không trước khi xóa
                 foreach ($backupPathsToTry as $backupPath) {
                     try {
-                        if ($this->fileManager->deleteFile($backupPath)) {
-                            $deletedFiles[] = $backupPath;
-                            $backupFileDeleted = true;
-                            break;
+                        if ($this->fileManager->fileExists($backupPath)) {
+                            $backupFileExists = true;
+                            // File tồn tại, thử xóa
+                            if ($this->fileManager->deleteFile($backupPath)) {
+                                $deletedFiles[] = $backupPath;
+                                $backupFileDeleted = true;
+                                break;
+                            }
                         }
                     } catch (Exception $e) {
                         // Ignore
                     }
                 }
                 
+                // Nếu file không tồn tại, coi như đã xóa thành công
+                if (!$backupFileExists) {
+                    $backupFileDeleted = true;
+                }
+                
+                // Xóa các file status, result và log liên quan
                 if (!empty($backupName)) {
                     $statusFile = '.tpanel/backups/' . $backupName . '.status';
                     $resultFile = '.tpanel/backups/' . $backupName . '.result';
+                    $logFile = '.tpanel/backups/' . $backupName . '.log';
                     
                     try {
                         if ($this->fileManager->deleteFile($statusFile)) {
@@ -261,9 +275,36 @@ class HostingerBackupManager {
                     } catch (Exception $e) {
                         // Ignore
                     }
+                    
+                    try {
+                        if ($this->fileManager->deleteFile($logFile)) {
+                            $deletedFiles[] = $logFile;
+                        }
+                    } catch (Exception $e) {
+                        // Ignore
+                    }
+                    
+                    // Xóa file .part nếu có
+                    try {
+                        $partFiles = $this->fileManager->listFiles('.tpanel/backups');
+                        foreach ($partFiles as $file) {
+                            if (strpos($file['name'], $backupName) !== false && 
+                                (strpos($file['name'], '.part') !== false || 
+                                 preg_match('/\.zip\.[a-z0-9]+\.part$/i', $file['name']))) {
+                                if ($this->fileManager->deleteFile('.tpanel/backups/' . $file['name'])) {
+                                    $deletedFiles[] = '.tpanel/backups/' . $file['name'];
+                                }
+                            }
+                        }
+                    } catch (Exception $e) {
+                        // Ignore
+                    }
                 }
                 
-                $this->db->query("DELETE FROM backups WHERE id = ?", [$backup['id']]);
+                // CHỈ xóa bản ghi database nếu file đã được xóa thành công hoặc không tồn tại
+                if ($backupFileDeleted) {
+                    $this->db->query("DELETE FROM backups WHERE id = ?", [$backup['id']]);
+                }
             }
         } catch (Exception $e) {
             // Ignore
@@ -329,14 +370,16 @@ class HostingerBackupManager {
             'backup_file' => false,
             'status_file' => false,
             'result_file' => false,
+            'log_file' => false,
             'database' => false
         ];
         
         try {
-            // Xóa các file status và result liên quan
+            // Xóa các file status, result và log liên quan
             $backupName = pathinfo($backup['filename'], PATHINFO_FILENAME);
             $statusFilePath = '.tpanel/backups/' . $backupName . '.status';
             $resultFilePath = '.tpanel/backups/' . $backupName . '.result';
+            $logFilePath = '.tpanel/backups/' . $backupName . '.log';
             $backupFilePath = '.tpanel/backups/' . $backup['filename'];
             
             // Xóa file backup chính trên server website
@@ -384,6 +427,30 @@ class HostingerBackupManager {
                 // Ignore
             }
             
+            // Xóa file log
+            try {
+                $result = $this->fileManager->deleteFile($logFilePath);
+                if ($result) {
+                    $results['log_file'] = true;
+                }
+            } catch (Exception $e) {
+                // Ignore
+            }
+            
+            // Xóa file .part nếu có
+            try {
+                $partFiles = $this->fileManager->listFiles('.tpanel/backups');
+                foreach ($partFiles as $file) {
+                    if (strpos($file['name'], $backupName) !== false && 
+                        (strpos($file['name'], '.part') !== false || 
+                         preg_match('/\.zip\.[a-z0-9]+\.part$/i', $file['name']))) {
+                        $this->fileManager->deleteFile('.tpanel/backups/' . $file['name']);
+                    }
+                }
+            } catch (Exception $e) {
+                // Ignore
+            }
+            
             if (!empty($backup['file_path']) && file_exists($backup['file_path'])) {
                 @unlink($backup['file_path']);
             }
@@ -412,6 +479,10 @@ class HostingerBackupManager {
         
         if ($results['result_file']) {
             $messages[] = 'File result đã được xóa';
+        }
+        
+        if ($results['log_file']) {
+            $messages[] = 'File log đã được xóa';
         }
         
         if ($results['database']) {
@@ -494,12 +565,40 @@ class HostingerBackupManager {
             ];
         }
         
-        // Nếu đang xử lý, kiểm tra file status trên server
+            // Nếu đang xử lý, kiểm tra file status trên server
         try {
             $backupName = pathinfo($backup['filename'], PATHINFO_FILENAME);
             $statusFilePath = '.tpanel/backups/' . $backupName . '.status';
             $resultFilePath = '.tpanel/backups/' . $backupName . '.result';
             $backupFilePath = '.tpanel/backups/' . $backup['filename'];
+            
+            // Kiểm tra xem có file .part không (file tạm khi tạo ZIP lớn)
+            // Nếu có file .part và chưa có file .zip, có thể file đang được tạo
+            try {
+                $files = $this->fileManager->listFiles('.tpanel/backups');
+                $partFile = null;
+                $partFileSize = 0;
+                
+                foreach ($files as $file) {
+                    // Tìm file .part tương ứng với backup này
+                    if (strpos($file['name'], $backupName) !== false && 
+                        (strpos($file['name'], '.part') !== false || 
+                         preg_match('/\.zip\.[a-z0-9]+\.part$/i', $file['name']))) {
+                        $partFile = $file['name'];
+                        $partFileSize = $file['size'] ?? 0;
+                        break;
+                    }
+                }
+                
+                // Nếu có file .part và chưa có file .zip, và file .part có kích thước hợp lý (> 10MB)
+                // Có thể file đang được tạo, giữ nguyên trạng thái processing
+                if ($partFile && $partFileSize > 10485760) {
+                    // File .part đang được tạo, vẫn đang xử lý
+                    // Không làm gì, để script trên server tự xử lý
+                }
+            } catch (Exception $e) {
+                // Ignore
+            }
             
             $statusContent = $this->fileManager->getFileContent($statusFilePath);
             $resultContent = $this->fileManager->getFileContent($resultFilePath);
@@ -629,9 +728,14 @@ class HostingerBackupManager {
             if ($backup['status'] === 'in_progress') {
                 try {
                     $fileInfo = $this->fileManager->listFiles('.tpanel/backups');
+                    $foundZipFile = false;
+                    $partFile = null;
+                    $partFileSize = 0;
+                    
                     foreach ($fileInfo as $file) {
                         if ($file['name'] === $backup['filename']) {
-                            // File đã tồn tại, mark as completed
+                            // File .zip đã tồn tại, mark as completed
+                            $foundZipFile = true;
                             $this->db->query(
                                 "UPDATE backups SET status = 'completed', remote_path = ?, file_size = ? WHERE id = ?",
                                 [$backupFilePath, $file['size'], $backupId]
@@ -642,6 +746,35 @@ class HostingerBackupManager {
                                 'remote_path' => $backupFilePath,
                                 'file_size' => $file['size']
                             ];
+                        }
+                        
+                        // Tìm file .part tương ứng
+                        if (strpos($file['name'], $backupName) !== false && 
+                            (strpos($file['name'], '.part') !== false || 
+                             preg_match('/\.zip\.[a-z0-9]+\.part$/i', $file['name']))) {
+                            $partFile = $file['name'];
+                            $partFileSize = $file['size'] ?? 0;
+                        }
+                    }
+                    
+                    // Nếu không tìm thấy file .zip nhưng có file .part với kích thước lớn (> 100MB)
+                    // Có thể file đang được tạo, nhưng nếu quá lâu (> 2 giờ) thì có thể bị lỗi
+                    if (!$foundZipFile && $partFile && $partFileSize > 104857600) {
+                        // File .part lớn, có thể đang được tạo
+                        // Kiểm tra thời gian tạo file
+                        $statusContent = $this->fileManager->getFileContent($statusFilePath);
+                        if ($statusContent) {
+                            $status = json_decode($statusContent, true);
+                            if ($status && isset($status['started_at'])) {
+                                $startedAt = strtotime($status['started_at']);
+                                $elapsed = time() - $startedAt;
+                                
+                                // Nếu đã quá 2 giờ, có thể bị lỗi
+                                if ($elapsed > 7200) {
+                                    // Quá lâu, có thể bị lỗi
+                                    // Nhưng vẫn giữ trạng thái processing để script trên server tự xử lý
+                                }
+                            }
                         }
                     }
                 } catch (Exception $e) {

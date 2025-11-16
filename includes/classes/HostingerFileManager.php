@@ -1542,6 +1542,241 @@ class HostingerFileManager {
         }
     }
     
+    /**
+     * Stream file trực tiếp đến output (không load vào memory)
+     * @param string $path Đường dẫn file
+     * @param resource $outputStream Stream để ghi (mặc định là php://output)
+     * @return bool|int Số bytes đã stream hoặc false nếu lỗi
+     */
+    public function streamFile($path, $outputStream = null) {
+        // Normalize path: remove leading slash and combine with basePath
+        $path = ltrim($path, '/');
+        
+        // Build full path
+        if (empty($this->basePath) || $this->basePath === '/') {
+            $filePath = '/' . $path;
+        } else {
+            $filePath = rtrim($this->basePath, '/') . '/' . $path;
+        }
+        
+        if ($outputStream === null) {
+            $outputStream = fopen('php://output', 'wb');
+            // Đảm bảo không buffer
+            if (function_exists('stream_set_write_buffer')) {
+                stream_set_write_buffer($outputStream, 0);
+            }
+        }
+        
+        if ($this->connectionType === 'sftp') {
+            if (!$this->sftpConnection) {
+                return false;
+            }
+            $stream = @fopen("ssh2.sftp://{$this->sftpConnection}$filePath", 'rb');
+            if (!$stream) {
+                return false;
+            }
+            
+            // Stream từ SFTP đến output với chunk lớn hơn
+            $bytesStreamed = 0;
+            $chunkCount = 0;
+            while (!feof($stream)) {
+                $chunk = fread($stream, 65536); // Tăng lên 64KB mỗi lần để nhanh hơn
+                if ($chunk === false || strlen($chunk) === 0) {
+                    break;
+                }
+                $written = fwrite($outputStream, $chunk);
+                if ($written === false) {
+                    break;
+                }
+                $bytesStreamed += $written;
+                $chunkCount++;
+                
+                // Flush ngay cho chunk đầu tiên, sau đó flush sau mỗi 4 chunks (256KB)
+                if ($chunkCount === 1 || $chunkCount % 4 === 0) {
+                    if (ob_get_level() > 0) {
+                        @ob_flush();
+                    }
+                    flush();
+                }
+            }
+            // Flush lần cuối
+            if (ob_get_level() > 0) {
+                @ob_flush();
+            }
+            flush();
+            fclose($stream);
+            if ($outputStream && $outputStream !== STDOUT) {
+                fclose($outputStream);
+            }
+            return $bytesStreamed;
+        } else {
+            if (!$this->ftpConnection) {
+                return false;
+            }
+            
+            $tempFile = tempnam(sys_get_temp_dir(), 'ftp_');
+            $originalDir = @ftp_pwd($this->ftpConnection);
+            
+            // Try multiple strategies similar to putFile()
+            $result = false;
+            
+            // Strategy 1: Try absolute path
+            $result = @ftp_get($this->ftpConnection, $tempFile, $filePath, FTP_BINARY);
+            
+            // Strategy 2: chdir vào thư mục chứa file, rồi download với relative filename
+            if (!$result) {
+                $dirPath = dirname($filePath);
+                $filename = basename($filePath);
+                
+                // Chdir vào basePath trước
+                if ($this->basePath !== '/' && !empty($this->basePath)) {
+                    if (@ftp_chdir($this->ftpConnection, $this->basePath)) {
+                        // Nếu filePath đã là relative từ basePath, thử chdir vào dirPath relative
+                        $relativeDirPath = ltrim(str_replace($this->basePath, '', $dirPath), '/');
+                        if (!empty($relativeDirPath) && $relativeDirPath !== '.') {
+                            if (@ftp_chdir($this->ftpConnection, $relativeDirPath)) {
+                                $result = @ftp_get($this->ftpConnection, $tempFile, $filename, FTP_BINARY);
+                            }
+                        } else {
+                            // File ở ngay basePath
+                            $result = @ftp_get($this->ftpConnection, $tempFile, $filename, FTP_BINARY);
+                        }
+                    }
+                } else {
+                    // basePath là root, thử chdir vào dirPath
+                    if (!empty($dirPath) && $dirPath !== '/') {
+                        if (@ftp_chdir($this->ftpConnection, $dirPath)) {
+                            $result = @ftp_get($this->ftpConnection, $tempFile, $filename, FTP_BINARY);
+                        }
+                    } else {
+                        // File ở root, thử download với filename
+                        $result = @ftp_get($this->ftpConnection, $tempFile, $filename, FTP_BINARY);
+                    }
+                }
+            }
+            
+            // Strategy 3: Nếu path đã là relative (như .tpanel/backups/file.zip), thử chdir vào basePath rồi dùng path đó
+            if (!$result && strpos($path, '/') !== false) {
+                if ($this->basePath !== '/' && !empty($this->basePath)) {
+                    if (@ftp_chdir($this->ftpConnection, $this->basePath)) {
+                        $result = @ftp_get($this->ftpConnection, $tempFile, $path, FTP_BINARY);
+                    }
+                } else {
+                    $result = @ftp_get($this->ftpConnection, $tempFile, $path, FTP_BINARY);
+                }
+            }
+            
+            // Strategy 4: Thử với path gốc (không normalize)
+            if (!$result) {
+                $originalPath = $path;
+                if (!empty($originalPath)) {
+                    $result = @ftp_get($this->ftpConnection, $tempFile, $originalPath, FTP_BINARY);
+                }
+            }
+            
+            // Restore original directory
+            if ($originalDir) {
+                @ftp_chdir($this->ftpConnection, $originalDir);
+            }
+            
+            if ($result) {
+                // Stream từ temp file đến output với chunk lớn hơn
+                $inputStream = fopen($tempFile, 'rb');
+                if ($inputStream) {
+                    $bytesStreamed = 0;
+                    $chunkCount = 0;
+                    while (!feof($inputStream)) {
+                        $chunk = fread($inputStream, 65536); // Tăng lên 64KB mỗi lần để nhanh hơn
+                        if ($chunk === false || strlen($chunk) === 0) {
+                            break;
+                        }
+                        $written = fwrite($outputStream, $chunk);
+                        if ($written === false) {
+                            break;
+                        }
+                        $bytesStreamed += $written;
+                        $chunkCount++;
+                        
+                        // Flush ngay cho chunk đầu tiên để browser nhận dữ liệu ngay
+                        // Sau đó flush sau mỗi 4 chunks (256KB) để tối ưu
+                        if ($chunkCount === 1 || $chunkCount % 4 === 0) {
+                            if (ob_get_level() > 0) {
+                                @ob_flush();
+                            }
+                            flush();
+                        }
+                    }
+                    // Flush lần cuối để đảm bảo tất cả data được gửi
+                    if (ob_get_level() > 0) {
+                        @ob_flush();
+                    }
+                    flush();
+                    fclose($inputStream);
+                }
+                @unlink($tempFile);
+                if ($outputStream && $outputStream !== STDOUT) {
+                    fclose($outputStream);
+                }
+                return $bytesStreamed;
+            } else {
+                @unlink($tempFile);
+                return false;
+            }
+        }
+    }
+    
+    /**
+     * Lấy kích thước file (không cần download)
+     * @param string $path Đường dẫn file
+     * @return int|false Kích thước file hoặc false nếu lỗi
+     */
+    public function getFileSize($path) {
+        // Normalize path: remove leading slash and combine with basePath
+        $path = ltrim($path, '/');
+        
+        // Build full path
+        if (empty($this->basePath) || $this->basePath === '/') {
+            $filePath = '/' . $path;
+        } else {
+            $filePath = rtrim($this->basePath, '/') . '/' . $path;
+        }
+        
+        if ($this->connectionType === 'sftp') {
+            if (!$this->sftpConnection) {
+                return false;
+            }
+            $stat = @ssh2_sftp_stat($this->sftpConnection, $filePath);
+            if (!$stat) {
+                return false;
+            }
+            return $stat['size'] ?? false;
+        } else {
+            if (!$this->ftpConnection) {
+                return false;
+            }
+            
+            // Try multiple strategies
+            $size = @ftp_size($this->ftpConnection, $filePath);
+            if ($size !== -1) {
+                return $size;
+            }
+            
+            // Try relative path
+            $originalDir = @ftp_pwd($this->ftpConnection);
+            if ($this->basePath !== '/' && !empty($this->basePath)) {
+                if (@ftp_chdir($this->ftpConnection, $this->basePath)) {
+                    $size = @ftp_size($this->ftpConnection, $path);
+                    @ftp_chdir($this->ftpConnection, $originalDir);
+                    if ($size !== -1) {
+                        return $size;
+                    }
+                }
+            }
+            
+            return false;
+        }
+    }
+    
     public function getFileContent($path) {
         // Normalize path: remove leading slash and combine with basePath
         $path = ltrim($path, '/');
