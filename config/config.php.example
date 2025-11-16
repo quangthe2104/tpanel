@@ -1,4 +1,7 @@
 <?php
+// Timezone configuration
+date_default_timezone_set('Asia/Ho_Chi_Minh'); // GMT+7
+
 // Base configuration
 // LƯU Ý: Thay đổi BASE_URL theo môi trường của bạn
 // Local: http://localhost/tpanel/
@@ -11,9 +14,6 @@ ini_set('session.cookie_httponly', 1);
 ini_set('session.use_only_cookies', 1);
 // Set cookie_secure = 1 nếu sử dụng HTTPS (production)
 ini_set('session.cookie_secure', 0);
-
-// Timezone
-date_default_timezone_set('Asia/Ho_Chi_Minh');
 
 // Error reporting
 error_reporting(E_ALL);
