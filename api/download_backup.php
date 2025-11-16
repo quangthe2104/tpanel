@@ -14,6 +14,19 @@ set_time_limit(0); // Không giới hạn thời gian
 ini_set('max_execution_time', 0);
 ini_set('memory_limit', '512M'); // Chỉ cần 512M vì dùng streaming
 
+// Tạo file log riêng để debug
+$logFile = __DIR__ . '/../logs/download_debug.log';
+$logDir = dirname($logFile);
+if (!is_dir($logDir)) {
+    @mkdir($logDir, 0755, true);
+}
+
+function debugLog($message) {
+    global $logFile;
+    $timestamp = date('Y-m-d H:i:s');
+    @file_put_contents($logFile, "[$timestamp] $message\n", FILE_APPEND);
+}
+
 require_once __DIR__ . '/../includes/helpers/functions.php';
 require_once __DIR__ . '/../includes/classes/HostingerFileManager.php';
 
@@ -87,7 +100,7 @@ if (!empty($backup['remote_path'])) {
         ini_set('default_socket_timeout', 600); // Tăng lên 10 phút
         
         // Log để debug
-        error_log("Download backup #$backupId: Starting connection to {$backup['connection_type']}://{$backup['sftp_host']}");
+        debugLog("Download backup #$backupId: Starting connection to {$backup['connection_type']}://{$backup['sftp_host']}");
         
         $fileManager = new HostingerFileManager(
             $backup['sftp_host'],
@@ -98,7 +111,7 @@ if (!empty($backup['remote_path'])) {
             $backup['sftp_port']
         );
         
-        error_log("Download backup #$backupId: Connected successfully");
+        debugLog("Download backup #$backupId: Connected successfully");
         
         // Thử nhiều cách path khác nhau
         $pathsToTry = [
@@ -114,43 +127,43 @@ if (!empty($backup['remote_path'])) {
         foreach ($pathsToTry as $tryPath) {
             // Sanitize path
             $tryPath = $security->sanitizePath($tryPath);
-            error_log("Download backup #$backupId: Trying path: $tryPath");
+            debugLog("Download backup #$backupId: Trying path: $tryPath");
             
             try {
                 if ($fileManager->fileExists($tryPath)) {
                     $filePath = $tryPath;
-                    error_log("Download backup #$backupId: Found file at: $tryPath");
+                    debugLog("Download backup #$backupId: Found file at: $tryPath");
                     break;
                 }
             } catch (Exception $e) {
-                error_log("Download backup #$backupId: Path $tryPath failed: " . $e->getMessage());
+                debugLog("Download backup #$backupId: Path $tryPath failed: " . $e->getMessage());
                 continue;
             }
         }
         
         if ($filePath === false) {
-            error_log("Download backup #$backupId: ERROR - File not found. Tried paths: " . implode(', ', $pathsToTry));
+            debugLog("Download backup #$backupId: ERROR - File not found. Tried paths: " . implode(', ', $pathsToTry));
             echo "\n\nERROR: Không thể tìm thấy file backup trên server.";
             exit;
         }
         
-        error_log("Download backup #$backupId: Starting stream from: $filePath");
+        debugLog("Download backup #$backupId: Starting stream from: $filePath");
         
         // Stream file trực tiếp (không load vào memory)
         $bytesStreamed = $fileManager->streamFile($filePath);
         
         if ($bytesStreamed === false) {
-            error_log("Download backup #$backupId: ERROR - Stream failed");
+            debugLog("Download backup #$backupId: ERROR - Stream failed");
             echo "\n\nERROR: Lỗi khi stream file backup từ server.";
             exit;
         }
         
-        error_log("Download backup #$backupId: Stream completed. Bytes: $bytesStreamed");
+        debugLog("Download backup #$backupId: Stream completed. Bytes: $bytesStreamed");
         exit;
     } catch (Exception $e) {
         // Log lỗi để debug
-        error_log("Download backup #$backupId ERROR: " . $e->getMessage() . " | File: " . $e->getFile() . " | Line: " . $e->getLine());
-        error_log("Download backup #$backupId Trace: " . $e->getTraceAsString());
+        debugLog("Download backup #$backupId ERROR: " . $e->getMessage() . " | File: " . $e->getFile() . " | Line: " . $e->getLine());
+        debugLog("Download backup #$backupId Trace: " . $e->getTraceAsString());
         
         // Gửi error message
         echo "\n\nERROR: Lỗi khi tải file: " . htmlspecialchars($e->getMessage(), ENT_QUOTES, 'UTF-8');
