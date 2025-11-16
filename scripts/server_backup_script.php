@@ -97,6 +97,112 @@ writeLog("Đã tạo status file: $statusFile", $logFile);
 
 try {
     $backupPath = '';
+    $sqlFile = '';
+    
+    // Nếu là full backup, export database TRƯỚC để có thể thêm vào ZIP cùng lúc với files
+    if ($backupType === 'full') {
+        writeLog("Bắt đầu export database trước khi tạo ZIP...", $logFile);
+        
+        $dbHost = $_GET['db_host'] ?? 'localhost';
+        $dbName = $_GET['db_name'] ?? '';
+        $dbUser = $_GET['db_user'] ?? '';
+        $dbPass = $_GET['db_pass'] ?? '';
+        
+        writeLog("Database host: $dbHost, Database name: $dbName, User: $dbUser", $logFile);
+        
+        if (empty($dbName) || empty($dbUser)) {
+            writeLog("LỖI: Thiếu thông tin database", $logFile);
+            throw new Exception("Database information not provided. db_name: " . ($dbName ?: 'empty') . ", db_user: " . ($dbUser ?: 'empty'));
+        }
+        
+        $hostsToTry = ['localhost', $dbHost];
+        if ($dbHost !== 'localhost' && $dbHost !== '127.0.0.1') {
+            $hostsToTry = ['localhost', '127.0.0.1', $dbHost];
+        }
+        
+        $sqlFile = $backupDir . $backupName . '.sql';
+        writeLog("SQL file: $sqlFile", $logFile);
+        
+        $pdo = null;
+        $lastError = null;
+        
+        writeLog("Đang thử kết nối database với các host: " . implode(', ', $hostsToTry), $logFile);
+        foreach ($hostsToTry as $tryHost) {
+            try {
+                writeLog("Thử kết nối với host: $tryHost", $logFile);
+                $pdo = new PDO(
+                    "mysql:host=$tryHost;dbname=$dbName;charset=utf8mb4",
+                    $dbUser,
+                    $dbPass,
+                    [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]
+                );
+                writeLog("Kết nối database thành công với host: $tryHost", $logFile);
+                break;
+            } catch (PDOException $e) {
+                $lastError = $e->getMessage();
+                writeLog("Kết nối thất bại với host $tryHost: " . $e->getMessage(), $logFile);
+                $pdo = null;
+            }
+        }
+        
+        if (!$pdo) {
+            writeLog("LỖI: Không thể kết nối database với bất kỳ host nào", $logFile);
+            throw new Exception("Database connection failed: $lastError");
+        }
+        
+        try {
+            writeLog("Bắt đầu export database...", $logFile);
+            $sql = "-- Database Export: $dbName\n";
+            $sql .= "-- Generated: " . date('Y-m-d H:i:s') . "\n\n";
+            
+            $tables = $pdo->query("SHOW TABLES")->fetchAll(PDO::FETCH_COLUMN);
+            writeLog("Tìm thấy " . count($tables) . " tables trong database", $logFile);
+            
+            foreach ($tables as $table) {
+                $stmt = $pdo->query("SHOW CREATE TABLE `$table`");
+                $createTable = $stmt->fetch();
+                $sql .= "\n-- Table structure for `$table`\n";
+                $sql .= "DROP TABLE IF EXISTS `$table`;\n";
+                $sql .= $createTable['Create Table'] . ";\n\n";
+                
+                $stmt = $pdo->query("SELECT * FROM `$table`");
+                $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+                
+                if (count($rows) > 0) {
+                    $sql .= "-- Data for table `$table`\n";
+                    $columns = array_keys($rows[0]);
+                    $sql .= "INSERT INTO `$table` (`" . implode('`, `', $columns) . "`) VALUES\n";
+                    
+                    $values = [];
+                    foreach ($rows as $row) {
+                        $rowValues = [];
+                        foreach ($row as $value) {
+                            if ($value === null) {
+                                $rowValues[] = 'NULL';
+                            } else {
+                                $rowValues[] = $pdo->quote($value);
+                            }
+                        }
+                        $values[] = '(' . implode(',', $rowValues) . ')';
+                    }
+                    $sql .= implode(",\n", $values) . ";\n\n";
+                }
+            }
+            
+            file_put_contents($sqlFile, $sql);
+            
+            if (!file_exists($sqlFile)) {
+                writeLog("LỖI: Không thể tạo file SQL", $logFile);
+                throw new Exception("Failed to create SQL file: $sqlFile");
+            }
+            
+            $sqlFileSize = filesize($sqlFile);
+            writeLog("Đã tạo file SQL thành công: " . round($sqlFileSize/1024/1024, 2) . " MB", $logFile);
+        } catch (PDOException $e) {
+            writeLog("LỖI khi export database: " . $e->getMessage(), $logFile);
+            throw new Exception("Database export failed: " . $e->getMessage());
+        }
+    }
     
     if ($backupType === 'full' || $backupType === 'files') {
         // Backup files: zip toàn bộ thư mục hiện tại
@@ -455,6 +561,15 @@ try {
         writeLog("Hoàn tất thêm files. Tổng: $fileCount files, " . round($totalSize/1024/1024, 2) . " MB", $logFile);
         writeLog("Đã bỏ qua: $excludedCount files cache/temp, " . round($excludedSize/1024/1024, 2) . " MB", $logFile);
         
+        // Nếu là full backup và đã có file SQL, thêm vào ZIP TRƯỚC KHI ĐÓNG
+        if ($backupType === 'full' && !empty($sqlFile) && file_exists($sqlFile)) {
+            writeLog("Thêm file SQL vào ZIP trước khi đóng...", $logFile);
+            if (!$useShellZip && $zip) {
+                $zip->addFile($sqlFile, basename($sqlFile));
+                writeLog("Đã thêm file SQL vào ZIP: " . basename($sqlFile) . " (" . round(filesize($sqlFile)/1024/1024, 2) . " MB)", $logFile);
+            }
+        }
+        
         // Flush log trước khi đóng ZIP (có thể mất thời gian)
         @fflush(fopen($logFile, 'a'));
         
@@ -750,6 +865,12 @@ try {
         $fileSize = filesize($zipFile);
         writeLog("File backup đã được tạo thành công: " . round($fileSize/1024/1024, 2) . " MB", $logFile);
         
+        // Xóa file SQL nếu đã thêm vào ZIP thành công
+        if ($backupType === 'full' && !empty($sqlFile) && file_exists($sqlFile)) {
+            @unlink($sqlFile);
+            writeLog("Đã xóa file SQL gốc sau khi thêm vào ZIP", $logFile);
+        }
+        
         // Xóa các file .part còn sót lại sau khi đã tạo xong .zip
         // Đợi một chút để đảm bảo file .zip đã được tạo xong
         sleep(1);
@@ -762,9 +883,10 @@ try {
         }
     }
     
-    if ($backupType === 'full' || $backupType === 'database') {
-        writeLog("Bắt đầu backup database...", $logFile);
-        // Backup database: cần thông tin DB từ config hoặc tham số
+    if ($backupType === 'database') {
+        // Backup chỉ database (không có files)
+        writeLog("Bắt đầu backup database only...", $logFile);
+        
         $dbHost = $_GET['db_host'] ?? 'localhost';
         $dbName = $_GET['db_name'] ?? '';
         $dbUser = $_GET['db_user'] ?? '';
@@ -774,27 +896,22 @@ try {
         
         if (empty($dbName) || empty($dbUser)) {
             writeLog("LỖI: Thiếu thông tin database", $logFile);
-            throw new Exception("Database information not provided. db_name: " . ($dbName ?: 'empty') . ", db_user: " . ($dbUser ?: 'empty'));
+            throw new Exception("Database information not provided");
         }
         
-        // Trên shared hosting, thường cần dùng localhost thay vì IP
-        // Thử localhost trước, nếu fail thì thử IP gốc
         $hostsToTry = ['localhost', $dbHost];
         if ($dbHost !== 'localhost' && $dbHost !== '127.0.0.1') {
             $hostsToTry = ['localhost', '127.0.0.1', $dbHost];
         }
         
-        // Export database
         $sqlFile = $backupDir . $backupName . '.sql';
         writeLog("SQL file: $sqlFile", $logFile);
         
         $pdo = null;
         $lastError = null;
         
-        writeLog("Đang thử kết nối database với các host: " . implode(', ', $hostsToTry), $logFile);
         foreach ($hostsToTry as $tryHost) {
             try {
-                writeLog("Thử kết nối với host: $tryHost", $logFile);
                 $pdo = new PDO(
                     "mysql:host=$tryHost;dbname=$dbName;charset=utf8mb4",
                     $dbUser,
@@ -805,34 +922,28 @@ try {
                 break;
             } catch (PDOException $e) {
                 $lastError = $e->getMessage();
-                writeLog("Kết nối thất bại với host $tryHost: " . $e->getMessage(), $logFile);
                 $pdo = null;
             }
         }
         
         if (!$pdo) {
-            writeLog("LỖI: Không thể kết nối database với bất kỳ host nào", $logFile);
             throw new Exception("Database connection failed: $lastError");
         }
         
         try {
-            writeLog("Bắt đầu export database...", $logFile);
             $sql = "-- Database Export: $dbName\n";
             $sql .= "-- Generated: " . date('Y-m-d H:i:s') . "\n\n";
             
-            // Get all tables
             $tables = $pdo->query("SHOW TABLES")->fetchAll(PDO::FETCH_COLUMN);
             writeLog("Tìm thấy " . count($tables) . " tables trong database", $logFile);
             
             foreach ($tables as $table) {
-                // Export table structure
                 $stmt = $pdo->query("SHOW CREATE TABLE `$table`");
                 $createTable = $stmt->fetch();
                 $sql .= "\n-- Table structure for `$table`\n";
                 $sql .= "DROP TABLE IF EXISTS `$table`;\n";
                 $sql .= $createTable['Create Table'] . ";\n\n";
                 
-                // Export table data
                 $stmt = $pdo->query("SELECT * FROM `$table`");
                 $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
                 
@@ -860,14 +971,12 @@ try {
             file_put_contents($sqlFile, $sql);
             
             if (!file_exists($sqlFile)) {
-                writeLog("LỖI: Không thể tạo file SQL", $logFile);
-                throw new Exception("Failed to create SQL file: $sqlFile");
+                throw new Exception("Failed to create SQL file");
             }
             
             $fileSize = filesize($sqlFile);
             writeLog("Đã tạo file SQL thành công: " . round($fileSize/1024/1024, 2) . " MB", $logFile);
         } catch (PDOException $e) {
-            writeLog("LỖI khi export database: " . $e->getMessage(), $logFile);
             throw new Exception("Database export failed: " . $e->getMessage());
         }
         
@@ -958,118 +1067,6 @@ try {
             writeLog("File ZIP database đã được tạo thành công: " . round($zipSize/1024/1024, 2) . " MB", $logFile);
             $backupPath = $zipFile;
             $fileSize = $zipSize;
-        } else {
-            // Nếu là full backup, thêm SQL vào zip với tên file đúng format
-            if (file_exists($sqlFile)) {
-                writeLog("Thêm file SQL vào ZIP backup full...", $logFile);
-                
-                // Nếu đã dùng shell zip để tạo file code, tiếp tục dùng shell zip để thêm SQL
-                if ($useShellZip && !empty($zipCommand)) {
-                    writeLog("Sử dụng shell zip để thêm SQL vào ZIP...", $logFile);
-                    
-                    $zipFileEscaped = escapeshellarg($backupPath);
-                    $sqlFileEscaped = escapeshellarg($sqlFile);
-                    $sqlBasename = basename($sqlFile);
-                    
-                    // Thêm file SQL vào ZIP (cd vào thư mục backup, thêm file)
-                    $addCmd = "cd " . escapeshellarg($backupDir) . " && $zipCommand -u $zipFileEscaped " . escapeshellarg($sqlBasename) . " 2>&1";
-                    writeLog("Chạy lệnh: $addCmd", $logFile);
-                    
-                    $addOutput = null;
-                    if (function_exists('exec')) {
-                        $output = [];
-                        $returnVar = 0;
-                        @exec($addCmd, $output, $returnVar);
-                        $addOutput = implode("\n", $output);
-                        $addSuccess = ($returnVar == 0);
-                    } else if (function_exists('shell_exec')) {
-                        $addOutput = @shell_exec($addCmd);
-                        $addSuccess = true;
-                    }
-                    
-                    if (empty($addOutput)) {
-                        $addOutput = "Không có output (có thể thành công)";
-                    }
-                    writeLog("Kết quả thêm SQL: $addOutput", $logFile);
-                    
-                    // Kiểm tra xem đã thêm thành công chưa
-                    sleep(1);
-                    if (file_exists($backupPath)) {
-                        $fileSize = filesize($backupPath);
-                        writeLog("Đã thêm SQL vào ZIP bằng shell command. Kích thước cuối: " . round($fileSize/1024/1024, 2) . " MB", $logFile);
-                        @unlink($sqlFile);
-                        writeLog("Đã xóa file SQL gốc", $logFile);
-                    } else {
-                        writeLog("LỖI: Không thể thêm SQL vào ZIP bằng shell command", $logFile);
-                    }
-                } else {
-                    // Dùng ZipArchive
-                    writeLog("Sử dụng ZipArchive để thêm SQL vào ZIP...", $logFile);
-                    $zip = new ZipArchive();
-                    // Mở file ZIP đã tồn tại để thêm file SQL vào (không tạo mới)
-                    if ($zip->open($backupPath) === TRUE) {
-                        $zip->addFile($sqlFile, basename($sqlFile));
-                        writeLog("Đã thêm file SQL vào ZIP, đang đóng...", $logFile);
-                        
-                        $closeStartTime = microtime(true);
-                        $closeResult = $zip->close();
-                        $closeDuration = round(microtime(true) - $closeStartTime, 2);
-                        
-                        if ($closeResult === TRUE) {
-                            writeLog("ZIP file đã được đóng thành công (mất $closeDuration giây)", $logFile);
-                        } else {
-                            writeLog("CẢNH BÁO: ZipArchive->close() trả về FALSE (code: $closeResult) sau $closeDuration giây", $logFile);
-                        }
-                        
-                        sleep(1);
-                        // Kiểm tra và xử lý file .part nếu có
-                        $partFiles = glob($backupDir . $backupName . '*.part');
-                        writeLog("Kiểm tra file ZIP sau khi thêm SQL. Tồn tại: " . (file_exists($backupPath) ? 'CÓ' : 'KHÔNG') . ", Kích thước: " . (file_exists($backupPath) ? round(filesize($backupPath)/1024/1024, 2) . " MB" : "0 MB") . ", Tìm thấy " . count($partFiles) . " file .part", $logFile);
-                        
-                        if (!empty($partFiles) && (!file_exists($backupPath) || filesize($backupPath) == 0)) {
-                            writeLog("File ZIP chưa tồn tại hoặc rỗng, xử lý file .part...", $logFile);
-                            $latestPartFile = '';
-                            $latestTime = 0;
-                            foreach ($partFiles as $partFile) {
-                                $mtime = filemtime($partFile);
-                                $size = filesize($partFile);
-                                writeLog("File .part: " . basename($partFile) . " - " . round($size/1024/1024, 2) . " MB", $logFile);
-                                if ($mtime > $latestTime) {
-                                    $latestTime = $mtime;
-                                    $latestPartFile = $partFile;
-                                }
-                            }
-                            if ($latestPartFile && filesize($latestPartFile) > 1048576) {
-                                writeLog("Đang đổi tên file .part: " . basename($latestPartFile), $logFile);
-                                if (rename($latestPartFile, $backupPath)) {
-                                    writeLog("Đã đổi tên file .part thành công", $logFile);
-                                } else if (copy($latestPartFile, $backupPath)) {
-                                    @unlink($latestPartFile);
-                                    writeLog("Đã copy file .part thành công", $logFile);
-                                }
-                            }
-                        }
-                        
-                        // Xóa các file .part còn sót lại
-                        $partFiles = glob($backupDir . $backupName . '*.part');
-                        writeLog("Xóa " . count($partFiles) . " file .part còn sót lại...", $logFile);
-                        foreach ($partFiles as $partFile) {
-                            if (@unlink($partFile)) {
-                                writeLog("Đã xóa: " . basename($partFile), $logFile);
-                            }
-                        }
-                        
-                        @unlink($sqlFile);
-                        $fileSize = filesize($backupPath);
-                        writeLog("Đã thêm SQL vào backup full. Kích thước cuối: " . round($fileSize/1024/1024, 2) . " MB", $logFile);
-                    } else {
-                        writeLog("LỖI: Không thể mở ZIP file để thêm SQL", $logFile);
-                        // Vẫn xóa file SQL để tránh để lại file rác
-                        @unlink($sqlFile);
-                        writeLog("Đã xóa file SQL (không thể thêm vào ZIP)", $logFile);
-                    }
-                }
-            }
         }
     }
     
