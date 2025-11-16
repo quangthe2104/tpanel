@@ -61,22 +61,33 @@ header('X-Accel-Buffering: no'); // Tắt buffering cho Nginx
 header('X-Accel-Limit-Rate: 0'); // Không giới hạn tốc độ cho Nginx
 header('Connection: close'); // Đóng connection ngay sau khi xong
 
-// Dùng file size từ database nếu có (nhanh hơn query từ server)
+// Set Content-Length nếu có file size từ database
+$hasContentLength = false;
 if (!empty($backup['file_size']) && $backup['file_size'] > 0) {
     header('Content-Length: ' . $backup['file_size']);
+    $hasContentLength = true;
 }
 
 // Flush headers ngay lập tức - QUAN TRỌNG cho server online
-// KHÔNG dùng fastcgi_finish_request() vì nó sẽ ngắt kết nối với client
-// Chỉ flush để gửi headers ngay nhưng vẫn giữ kết nối để stream data
 if (ob_get_level() > 0) {
     @ob_end_flush();
 }
 flush();
 
+// Gửi một số data ngay để "đánh thức" browser (quan trọng cho shared hosting)
+// Chỉ gửi khi KHÔNG có Content-Length để tránh làm sai kích thước file
+// Browser sẽ bắt đầu download ngay khi nhận được data đầu tiên
+if (!$hasContentLength) {
+    echo str_repeat(' ', 1024); // 1KB placeholder
+    flush();
+}
+
 // Download từ server website
 if (!empty($backup['remote_path'])) {
     try {
+        // Tăng timeout cho kết nối SFTP/FTP
+        ini_set('default_socket_timeout', 300);
+        
         $fileManager = new HostingerFileManager(
             $backup['sftp_host'],
             $backup['sftp_username'],
@@ -101,26 +112,41 @@ if (!empty($backup['remote_path'])) {
             // Sanitize path
             $tryPath = $security->sanitizePath($tryPath);
             // Chỉ cần check file exists, không cần lấy size
-            if ($fileManager->fileExists($tryPath)) {
-                $filePath = $tryPath;
-                break;
+            try {
+                if ($fileManager->fileExists($tryPath)) {
+                    $filePath = $tryPath;
+                    break;
+                }
+            } catch (Exception $e) {
+                // Tiếp tục thử path khác
+                continue;
             }
         }
         
         if ($filePath === false) {
-            die('Không thể tìm thấy file backup trên server.');
+            // Nếu đã gửi headers và data, không thể die() được nữa
+            // Gửi error message dưới dạng text
+            echo "\n\nERROR: Không thể tìm thấy file backup trên server.";
+            exit;
         }
         
         // Stream file trực tiếp (không load vào memory)
         $bytesStreamed = $fileManager->streamFile($filePath);
         
         if ($bytesStreamed === false) {
-            die('Lỗi khi stream file backup từ server.');
+            echo "\n\nERROR: Lỗi khi stream file backup từ server.";
+            exit;
         }
         
         exit;
     } catch (Exception $e) {
-        die('Lỗi khi tải file: ' . htmlspecialchars($e->getMessage(), ENT_QUOTES, 'UTF-8'));
+        // Log lỗi để debug
+        error_log("Download backup error: " . $e->getMessage() . " | Trace: " . $e->getTraceAsString());
+        
+        // Nếu đã gửi headers, không thể die() được nữa
+        // Gửi error message dưới dạng text
+        echo "\n\nERROR: Lỗi khi tải file: " . htmlspecialchars($e->getMessage(), ENT_QUOTES, 'UTF-8');
+        exit;
     }
 } else {
     // Fallback: download từ server Tpanel (nếu còn file tạm)
