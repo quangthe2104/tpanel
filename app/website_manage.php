@@ -356,7 +356,7 @@ include __DIR__ . '/../includes/header.php';
             <div class="card-body">
                 <h6 class="text-muted">Tổng dung lượng</h6>
                 <h4 id="total-size-display">
-                    <?php if ($diskUsageCalculating): ?>
+                    <?php if ($diskUsageCalculating && !$diskUsage): ?>
                         <span class="text-muted"><?php echo formatBytes($dbSize); ?> + ...</span>
                     <?php else: ?>
                         <?php echo formatBytes($totalSize); ?>
