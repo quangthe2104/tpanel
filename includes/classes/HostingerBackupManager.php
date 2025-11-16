@@ -187,9 +187,10 @@ class HostingerBackupManager {
     }
     
     private function logBackup($type, $filename, $filePath) {
+        $createdAt = date('Y-m-d H:i:s'); // Dùng timezone đã set (GMT+7)
         $this->db->query(
-            "INSERT INTO backups (website_id, user_id, type, filename, file_path, status) VALUES (?, ?, ?, ?, ?, 'in_progress')",
-            [$this->websiteId, $this->userId, $type, $filename, $filePath]
+            "INSERT INTO backups (website_id, user_id, type, filename, file_path, status, created_at) VALUES (?, ?, ?, ?, ?, 'in_progress', ?)",
+            [$this->websiteId, $this->userId, $type, $filename, $filePath, $createdAt]
         );
         return $this->db->lastInsertId();
     }
