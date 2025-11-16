@@ -1,4 +1,9 @@
 <?php
+// Hiển thị lỗi để debug (chỉ trong development, nên tắt trong production)
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
+
 // Tắt tất cả output buffering NGAY TỪ ĐẦU (trước khi include bất cứ file nào)
 while (ob_get_level()) {
     ob_end_clean();
@@ -27,16 +32,21 @@ function debugLog($message) {
     @file_put_contents($logFile, "[$timestamp] $message\n", FILE_APPEND);
 }
 
-require_once __DIR__ . '/../includes/helpers/functions.php';
-require_once __DIR__ . '/../includes/classes/HostingerFileManager.php';
+try {
+    require_once __DIR__ . '/../includes/helpers/functions.php';
+    require_once __DIR__ . '/../includes/classes/HostingerFileManager.php';
 
-$auth = new Auth();
-$auth->requireLogin();
+    $auth = new Auth();
+    $auth->requireLogin();
 
-$security = Security::getInstance();
-$backupId = $security->validateInt($_GET['id'] ?? 0, 1);
-if (!$backupId) {
-    die('Backup ID không hợp lệ');
+    $security = Security::getInstance();
+    $backupId = $security->validateInt($_GET['id'] ?? 0, 1);
+    if (!$backupId) {
+        throw new Exception('Backup ID không hợp lệ');
+    }
+} catch (Exception $e) {
+    debugLog("Download backup initialization error: " . $e->getMessage());
+    die('Lỗi khởi tạo: ' . htmlspecialchars($e->getMessage(), ENT_QUOTES, 'UTF-8'));
 }
 
 $db = Database::getInstance();
@@ -65,31 +75,36 @@ $auth->logActivity($auth->getUserId(), $backup['website_id'], 'backup_downloaded
 
 // KIỂM TRA XEM CÓ THỂ DÙNG HTTP REDIRECT KHÔNG (nhanh nhất, không cần stream)
 if (!empty($backup['remote_path']) && !empty($backup['url'])) {
-    // Tạo HTTP URL từ remote_path
-    $websiteUrl = rtrim($backup['url'], '/');
-    $remotePath = ltrim($backup['remote_path'], '/');
-    $httpUrl = $websiteUrl . '/' . $remotePath;
-    
-    debugLog("Download backup #$backupId: Trying HTTP URL: $httpUrl");
-    
-    // Kiểm tra xem file có thể truy cập qua HTTP không (timeout 5 giây)
-    $context = stream_context_create([
-        'http' => [
-            'timeout' => 5,
-            'method' => 'HEAD'
-        ]
-    ]);
-    $headers = @get_headers($httpUrl, 1, $context);
-    
-    if ($headers && strpos($headers[0], '200') !== false) {
-        debugLog("Download backup #$backupId: File accessible via HTTP, redirecting to: $httpUrl");
+    try {
+        // Tạo HTTP URL từ remote_path
+        $websiteUrl = rtrim($backup['url'], '/');
+        $remotePath = ltrim($backup['remote_path'], '/');
+        $httpUrl = $websiteUrl . '/' . $remotePath;
         
-        // Redirect đến file HTTP (nhanh nhất, không cần stream)
-        header("Location: $httpUrl");
-        exit;
-    } else {
-        $status = $headers ? $headers[0] : 'No response';
-        debugLog("Download backup #$backupId: HTTP URL not accessible (status: $status), falling back to SFTP/FTP stream");
+        debugLog("Download backup #$backupId: Trying HTTP URL: $httpUrl");
+        
+        // Kiểm tra xem file có thể truy cập qua HTTP không (timeout 5 giây)
+        $context = stream_context_create([
+            'http' => [
+                'timeout' => 5,
+                'method' => 'HEAD',
+                'ignore_errors' => true
+            ]
+        ]);
+        $headers = @get_headers($httpUrl, 1, $context);
+        
+        if ($headers && strpos($headers[0], '200') !== false) {
+            debugLog("Download backup #$backupId: File accessible via HTTP, redirecting to: $httpUrl");
+            
+            // Redirect đến file HTTP (nhanh nhất, không cần stream)
+            header("Location: $httpUrl");
+            exit;
+        } else {
+            $status = $headers ? $headers[0] : 'No response';
+            debugLog("Download backup #$backupId: HTTP URL not accessible (status: $status), falling back to SFTP/FTP stream");
+        }
+    } catch (Exception $e) {
+        debugLog("Download backup #$backupId: HTTP check failed: " . $e->getMessage() . ", falling back to SFTP/FTP stream");
     }
 }
 
