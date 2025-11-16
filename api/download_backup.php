@@ -41,7 +41,7 @@ if (!$backupId) {
 
 $db = Database::getInstance();
 
-$backup = $db->fetchOne("SELECT b.*, w.sftp_host, w.sftp_username, w.sftp_password, w.sftp_port, w.connection_type, w.path 
+$backup = $db->fetchOne("SELECT b.*, w.sftp_host, w.sftp_username, w.sftp_password, w.sftp_port, w.connection_type, w.path, w.url 
                          FROM backups b 
                          LEFT JOIN websites w ON b.website_id = w.id 
                          WHERE b.id = ?", [$backupId]);
@@ -63,7 +63,37 @@ if ($backup['expires_at'] && strtotime($backup['expires_at']) < time()) {
 // Log download (async, không chặn)
 $auth->logActivity($auth->getUserId(), $backup['website_id'], 'backup_downloaded', "Backup ID: $backupId");
 
-// GỬI HEADERS NGAY LẬP TỨC để browser biết đang download
+// KIỂM TRA XEM CÓ THỂ DÙNG HTTP REDIRECT KHÔNG (nhanh nhất, không cần stream)
+if (!empty($backup['remote_path']) && !empty($backup['url'])) {
+    // Tạo HTTP URL từ remote_path
+    $websiteUrl = rtrim($backup['url'], '/');
+    $remotePath = ltrim($backup['remote_path'], '/');
+    $httpUrl = $websiteUrl . '/' . $remotePath;
+    
+    debugLog("Download backup #$backupId: Trying HTTP URL: $httpUrl");
+    
+    // Kiểm tra xem file có thể truy cập qua HTTP không (timeout 5 giây)
+    $context = stream_context_create([
+        'http' => [
+            'timeout' => 5,
+            'method' => 'HEAD'
+        ]
+    ]);
+    $headers = @get_headers($httpUrl, 1, $context);
+    
+    if ($headers && strpos($headers[0], '200') !== false) {
+        debugLog("Download backup #$backupId: File accessible via HTTP, redirecting to: $httpUrl");
+        
+        // Redirect đến file HTTP (nhanh nhất, không cần stream)
+        header("Location: $httpUrl");
+        exit;
+    } else {
+        $status = $headers ? $headers[0] : 'No response';
+        debugLog("Download backup #$backupId: HTTP URL not accessible (status: $status), falling back to SFTP/FTP stream");
+    }
+}
+
+// GỬI HEADERS NGAY LẬP TỨC để browser biết đang download (nếu không dùng HTTP redirect)
 $filename = basename($backup['filename']);
 header('Content-Type: application/octet-stream');
 header('Content-Disposition: attachment; filename="' . $filename . '"');
@@ -93,9 +123,11 @@ flush();
 echo str_repeat(' ', $placeholderSize);
 flush();
 
-// Download từ server website
+// Download từ server website qua SFTP/FTP
 if (!empty($backup['remote_path'])) {
     try {
+        
+        // PHƯƠNG PHÁP 2: Dùng SFTP/FTP (fallback)
         // Tăng timeout cho kết nối SFTP/FTP
         ini_set('default_socket_timeout', 600); // Tăng lên 10 phút
         
