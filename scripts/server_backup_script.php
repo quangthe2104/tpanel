@@ -963,7 +963,8 @@ try {
             if (file_exists($sqlFile)) {
                 writeLog("Thêm file SQL vào ZIP backup full...", $logFile);
                 $zip = new ZipArchive();
-                if ($zip->open($backupPath, ZipArchive::CREATE) === TRUE) {
+                // Mở file ZIP đã tồn tại để thêm file SQL vào (không tạo mới)
+                if ($zip->open($backupPath) === TRUE) {
                     $zip->addFile($sqlFile, basename($sqlFile));
                     writeLog("Đã thêm file SQL vào ZIP, đang đóng...", $logFile);
                     
