@@ -61,11 +61,13 @@ header('X-Accel-Buffering: no'); // Tắt buffering cho Nginx
 header('X-Accel-Limit-Rate: 0'); // Không giới hạn tốc độ cho Nginx
 header('Connection: close'); // Đóng connection ngay sau khi xong
 
-// Set Content-Length nếu có file size từ database
-$hasContentLength = false;
+// Gửi một số data ngay để "đánh thức" browser (QUAN TRỌNG cho shared hosting)
+// Browser sẽ bắt đầu download ngay khi nhận được data đầu tiên
+$placeholderSize = 1024; // 1KB
+
+// Set Content-Length = file size + placeholder (nếu có file size)
 if (!empty($backup['file_size']) && $backup['file_size'] > 0) {
-    header('Content-Length: ' . $backup['file_size']);
-    $hasContentLength = true;
+    header('Content-Length: ' . ($backup['file_size'] + $placeholderSize));
 }
 
 // Flush headers ngay lập tức - QUAN TRỌNG cho server online
@@ -74,13 +76,9 @@ if (ob_get_level() > 0) {
 }
 flush();
 
-// Gửi một số data ngay để "đánh thức" browser (quan trọng cho shared hosting)
-// Chỉ gửi khi KHÔNG có Content-Length để tránh làm sai kích thước file
-// Browser sẽ bắt đầu download ngay khi nhận được data đầu tiên
-if (!$hasContentLength) {
-    echo str_repeat(' ', 1024); // 1KB placeholder
-    flush();
-}
+// Gửi placeholder data ngay - LUÔN gửi để browser biết đang download
+echo str_repeat(' ', $placeholderSize);
+flush();
 
 // Download từ server website
 if (!empty($backup['remote_path'])) {
