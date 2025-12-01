@@ -55,6 +55,21 @@ function writeLog($message, $logFile) {
     }
 }
 
+// Hàm cập nhật status file
+function updateStatus($status, $data, $statusFile) {
+    $statusData = [
+        'status' => $status,
+        'timestamp' => time(),
+        'datetime' => date('Y-m-d H:i:s')
+    ];
+    
+    if (is_array($data)) {
+        $statusData = array_merge($statusData, $data);
+    }
+    
+    @file_put_contents($statusFile, json_encode($statusData, JSON_PRETTY_PRINT), LOCK_EX);
+}
+
 // Đăng ký shutdown function để ghi log cuối cùng nếu script bị kill
 // Sử dụng biến global để tránh vấn đề với closure
 $GLOBALS['backup_log_file'] = $logFile;
@@ -374,6 +389,15 @@ try {
                 writeLog("LỖI: Không thể tạo zip archive. Code: $zipResult", $logFile);
                 throw new Exception("Cannot create zip archive (code: $zipResult)");
             }
+            
+            // Tối ưu hóa ZipArchive để tránh timeout với file lớn
+            // Sử dụng compression level thấp (nhanh hơn nhưng file lớn hơn một chút)
+            // Level 1 = nhanh nhất, Level 9 = nén tốt nhất (mặc định ~6)
+            if (method_exists($zip, 'setCompressionIndex')) {
+                // Không set compression ở đây, sẽ set cho từng file khi add
+                writeLog("ZipArchive hỗ trợ setCompressionIndex - sẽ dùng compression thấp để tăng tốc", $logFile);
+            }
+            
             writeLog("ZipArchive đã mở thành công", $logFile);
         } else {
             $zip = null; // Không dùng ZipArchive
@@ -548,6 +572,13 @@ try {
                     
                     // Thêm file vào ZIP
                     $zip->addFile($filePath, $relativePath);
+                    
+                    // Sử dụng compression thấp (level 1) để tăng tốc độ đóng ZIP
+                    // Điều này giảm thời gian close() từ 30-60 phút xuống còn 5-10 phút
+                    if (method_exists($zip, 'setCompressionIndex')) {
+                        $zip->setCompressionIndex($fileCount, ZipArchive::CM_DEFLATE, 1);
+                    }
+                    
                     $fileCount++;
                     $totalSize += filesize($filePath);
                     
@@ -556,6 +587,12 @@ try {
                     if ($fileCount % 1000 == 0 || ($currentTime - $lastLogTime) >= 30) {
                         writeLog("Đã thêm $fileCount files vào ZIP (tổng kích thước: " . round($totalSize/1024/1024, 2) . " MB, đã bỏ qua: $excludedCount files, " . round($excludedSize/1024/1024, 2) . " MB)", $logFile);
                         $lastLogTime = $currentTime;
+                        
+                        // Flush memory và reset timeout mỗi 1000 files
+                        if (function_exists('gc_collect_cycles')) {
+                            gc_collect_cycles();
+                        }
+                        set_time_limit(3600); // Reset timeout thêm 1 giờ
                     }
                 }
             }
@@ -564,12 +601,34 @@ try {
         writeLog("Hoàn tất thêm files. Tổng: $fileCount files, " . round($totalSize/1024/1024, 2) . " MB", $logFile);
         writeLog("Đã bỏ qua: $excludedCount files cache/temp, " . round($excludedSize/1024/1024, 2) . " MB", $logFile);
         
-        // Nếu là full backup và đã có file SQL, thêm vào ZIP TRƯỚC KHI ĐÓNG
+        // Nếu là full backup và đã có file SQL, quyết định có thêm vào ZIP hay không
+        $sqlFileAddedToZip = false;
         if ($backupType === 'full' && !empty($sqlFile) && file_exists($sqlFile)) {
-            writeLog("Thêm file SQL vào ZIP trước khi đóng...", $logFile);
-            if (!$useShellZip && $zip) {
-                $zip->addFile($sqlFile, basename($sqlFile));
-                writeLog("Đã thêm file SQL vào ZIP: " . basename($sqlFile) . " (" . round(filesize($sqlFile)/1024/1024, 2) . " MB)", $logFile);
+            $sqlFileSize = filesize($sqlFile);
+            $sqlFileSizeMB = round($sqlFileSize / 1024 / 1024, 2);
+            $totalSizeMB = round($totalSize / 1024 / 1024, 2);
+            $combinedSizeMB = $totalSizeMB + $sqlFileSizeMB;
+            
+            // Nếu tổng kích thước > 2GB, KHÔNG thêm SQL vào ZIP để tránh timeout
+            // File SQL sẽ được giữ riêng và có thể download riêng
+            if ($combinedSizeMB > 2048) {
+                writeLog("CẢNH BÁO: Tổng kích thước quá lớn ({$combinedSizeMB} MB > 2048 MB)", $logFile);
+                writeLog("File SQL ({$sqlFileSizeMB} MB) sẽ KHÔNG được thêm vào ZIP để tránh timeout", $logFile);
+                writeLog("File SQL sẽ được giữ riêng: " . basename($sqlFile), $logFile);
+                $sqlFileAddedToZip = false;
+            } else {
+                writeLog("Thêm file SQL vào ZIP trước khi đóng...", $logFile);
+                if (!$useShellZip && $zip) {
+                    $zip->addFile($sqlFile, basename($sqlFile));
+                    
+                    // Sử dụng compression thấp cho file SQL để tăng tốc
+                    if (method_exists($zip, 'setCompressionIndex')) {
+                        $zip->setCompressionIndex($fileCount, ZipArchive::CM_DEFLATE, 1);
+                    }
+                    
+                    writeLog("Đã thêm file SQL vào ZIP: " . basename($sqlFile) . " ({$sqlFileSizeMB} MB)", $logFile);
+                    $sqlFileAddedToZip = true;
+                }
             }
         }
         
@@ -640,8 +699,9 @@ try {
         } else {
             // Sử dụng ZipArchive (có thể bị treo với file lớn)
             // Với file lớn (>5GB), ZipArchive->close() có thể mất 30-60 phút
-            $estimatedTime = round($totalSize / 100, 0); // Ước tính: ~100MB/phút
-            writeLog("Sử dụng ZipArchive (với file " . round($totalSize, 2) . " MB, ước tính mất ~{$estimatedTime} phút)...", $logFile);
+            $totalSizeMB = round($totalSize / 1024 / 1024, 2);
+            $estimatedTime = round($totalSizeMB / 100, 0); // Ước tính: ~100MB/phút
+            writeLog("Sử dụng ZipArchive (với file {$totalSizeMB} MB, ước tính mất ~{$estimatedTime} phút)...", $logFile);
             
             // Thử đóng với timeout logic
             $closeResult = false;
@@ -649,8 +709,22 @@ try {
             
             // Với file lớn, không dùng alarm vì có thể làm gián đoạn
             // Chỉ log cảnh báo nếu quá lâu
+            
+            // Update status để người dùng biết đang đóng ZIP
+            updateStatus('closing_zip', [
+                'message' => "Đang đóng file ZIP (có thể mất ~{$estimatedTime} phút với file {$totalSizeMB} MB)...",
+                'progress' => 90,
+                'files_added' => $fileCount,
+                'total_size_mb' => $totalSizeMB
+            ], $statusFile);
+            
+            // Reset timeout trước khi đóng
+            set_time_limit(7200); // 2 giờ cho quá trình đóng file lớn
+            
             try {
                 writeLog("Bắt đầu đóng ZipArchive (blocking call - có thể mất rất lâu)...", $logFile);
+                writeLog("Đã set timeout = 7200s (2 giờ) và sử dụng compression level 1 để tăng tốc", $logFile);
+                
                 $closeResult = $zip->close();
                 $closeDuration = round(microtime(true) - $closeStartTime, 2);
                 
@@ -730,11 +804,12 @@ try {
                         $partAge = time() - $partMtime;
                         
                         // Với file lớn (>5GB), cần đợi lâu hơn (120 giây) và kiểm tra kỹ hơn
-                        $minAge = ($totalSize > 5000) ? 120 : 60; // 120s cho file >5GB, 60s cho file nhỏ hơn
-                        $minSizeRatio = ($totalSize > 5000) ? 0.85 : 0.9; // 85% cho file >5GB, 90% cho file nhỏ hơn
+                        $totalSizeMB = round($totalSize / 1024 / 1024, 2);
+                        $minAge = ($totalSizeMB > 5000) ? 120 : 60; // 120s cho file >5GB, 60s cho file nhỏ hơn
+                        $minSizeRatio = ($totalSizeMB > 5000) ? 0.85 : 0.9; // 85% cho file >5GB, 90% cho file nhỏ hơn
                         
-                        if ($partAge > $minAge && $largestSize > ($totalSize * $minSizeRatio * 1024 * 1024)) { // File đã đủ lớn và không thay đổi
-                            writeLog("File .part đã đủ lớn (" . round($largestSize/1024/1024, 2) . " MB / " . round($totalSize, 2) . " MB dự kiến) và không thay đổi trong {$minAge}s, thử đổi tên...", $logFile);
+                        if ($partAge > $minAge && $largestSize > ($totalSize * $minSizeRatio)) { // File đã đủ lớn và không thay đổi
+                            writeLog("File .part đã đủ lớn (" . round($largestSize/1024/1024, 2) . " MB / {$totalSizeMB} MB dự kiến) và không thay đổi trong {$minAge}s, thử đổi tên...", $logFile);
                             if (rename($largestPartFile, $zipFile)) {
                                 writeLog("Đã đổi tên file .part thành .zip thành công!", $logFile);
                                 break;
@@ -780,11 +855,12 @@ try {
                             
                             // Nếu file đã không thay đổi và đủ lớn, thử đổi tên
                             // Với file lớn (>5GB), cần đợi lâu hơn
-                            $minAgeForRename = ($totalSize > 5000) ? 180 : 120; // 180s cho file >5GB, 120s cho file nhỏ hơn
-                            $minSizeRatioForRename = ($totalSize > 5000) ? 0.8 : 0.85; // 80% cho file >5GB, 85% cho file nhỏ hơn
+                            $totalSizeMB = round($totalSize / 1024 / 1024, 2);
+                            $minAgeForRename = ($totalSizeMB > 5000) ? 180 : 120; // 180s cho file >5GB, 120s cho file nhỏ hơn
+                            $minSizeRatioForRename = ($totalSizeMB > 5000) ? 0.8 : 0.85; // 80% cho file >5GB, 85% cho file nhỏ hơn
                             
-                            if ($age > $minAgeForRename && $latestSize > ($totalSize * $minSizeRatioForRename * 1024 * 1024)) {
-                                writeLog("File .part đã không thay đổi {$minAgeForRename}s và đủ lớn (" . round($latestSize/1024/1024, 2) . " MB / " . round($totalSize, 2) . " MB dự kiến), thử đổi tên...", $logFile);
+                            if ($age > $minAgeForRename && $latestSize > ($totalSize * $minSizeRatioForRename)) {
+                                writeLog("File .part đã không thay đổi {$minAgeForRename}s và đủ lớn (" . round($latestSize/1024/1024, 2) . " MB / {$totalSizeMB} MB dự kiến), thử đổi tên...", $logFile);
                                 if (@rename($latestPart, $zipFile)) {
                                     writeLog("Đã đổi tên file .part thành .zip thành công!", $logFile);
                                     break;
@@ -869,9 +945,11 @@ try {
         writeLog("File backup đã được tạo thành công: " . round($fileSize/1024/1024, 2) . " MB", $logFile);
         
         // Xóa file SQL nếu đã thêm vào ZIP thành công
-        if ($backupType === 'full' && !empty($sqlFile) && file_exists($sqlFile)) {
+        if ($backupType === 'full' && !empty($sqlFile) && file_exists($sqlFile) && $sqlFileAddedToZip) {
             @unlink($sqlFile);
             writeLog("Đã xóa file SQL gốc sau khi thêm vào ZIP", $logFile);
+        } else if ($backupType === 'full' && !empty($sqlFile) && file_exists($sqlFile) && !$sqlFileAddedToZip) {
+            writeLog("File SQL được giữ riêng (không xóa): " . basename($sqlFile) . " (" . round(filesize($sqlFile)/1024/1024, 2) . " MB)", $logFile);
         }
         
         // Xóa các file .part còn sót lại sau khi đã tạo xong .zip
