@@ -129,7 +129,42 @@ $backups = $backupManager->getBackups();
                                             <?php elseif (!$fileExists): ?>
                                                 <span class="badge bg-danger">File đã bị xóa</span>
                                             <?php else: ?>
-                                                <a href="<?php echo backupUrl($backup['id']); ?>" class="btn btn-sm btn-success download-backup-btn" data-backup-id="<?php echo $backup['id']; ?>">
+                                                <?php
+                                                // Tạo HTTP URL trực tiếp nếu có thể (để download nhanh hơn và có progress ngay)
+                                                $directUrl = null;
+                                                if (!empty($backup['remote_path'])) {
+                                                    $websiteUrl = !empty($backup['website_url']) ? $backup['website_url'] : (!empty($backup['domain']) ? 'https://' . $backup['domain'] : null);
+                                                    if ($websiteUrl) {
+                                                        // Normalize remote_path để lấy relative path từ web root
+                                                        $remotePath = $backup['remote_path'];
+                                                        
+                                                        // Nếu là absolute path từ server, extract relative path
+                                                        if (strpos($remotePath, '/home/') === 0 || (strpos($remotePath, '/') === 0 && strpos($remotePath, '.tpanel') === false)) {
+                                                            // Tìm public_html trong path
+                                                            if (strpos($remotePath, 'public_html/') !== false) {
+                                                                $parts = explode('public_html/', $remotePath, 2);
+                                                                if (isset($parts[1])) {
+                                                                    $remotePath = $parts[1];
+                                                                }
+                                                            } elseif (strpos($remotePath, 'www/') !== false) {
+                                                                $parts = explode('www/', $remotePath, 2);
+                                                                if (isset($parts[1])) {
+                                                                    $remotePath = $parts[1];
+                                                                }
+                                                            }
+                                                        }
+                                                        
+                                                        // Đảm bảo remotePath là relative
+                                                        $remotePath = ltrim($remotePath, '/');
+                                                        $directUrl = rtrim($websiteUrl, '/') . '/' . $remotePath;
+                                                    }
+                                                }
+                                                $downloadUrl = $directUrl ? $directUrl : backupUrl($backup['id']);
+                                                ?>
+                                                <a href="<?php echo htmlspecialchars($downloadUrl, ENT_QUOTES, 'UTF-8'); ?>" 
+                                                   class="btn btn-sm btn-success download-backup-btn" 
+                                                   data-backup-id="<?php echo $backup['id']; ?>"
+                                                   <?php if ($directUrl): ?>target="_blank"<?php endif; ?>>
                                                     <i class="bi bi-download"></i> <span class="btn-text">Download</span>
                                                 </a>
                                             <?php endif; ?>
@@ -219,49 +254,38 @@ $backups = $backupManager->getBackups();
             if (isExpired) {
                 actionCell.innerHTML = '<span class="badge bg-secondary">Đã hết hạn</span> ' + deleteFormHtml;
             } else {
-                actionCell.innerHTML = '<a href="<?php echo BASE_URL; ?>backup/' + backupId + '/download" class="btn btn-sm btn-success download-backup-btn" data-backup-id="' + backupId + '"><i class="bi bi-download"></i> <span class="btn-text">Download</span></a> ' + deleteFormHtml;
-                // Attach event listener cho nút Download mới tạo
-                const newDownloadBtn = actionCell.querySelector('.download-backup-btn');
-                if (newDownloadBtn) {
-                    newDownloadBtn.addEventListener('click', function(e) {
-                        const btnText = this.querySelector('.btn-text');
-                        const btnIcon = this.querySelector('i');
-                        const originalIcon = btnIcon ? btnIcon.className : '';
-                        const originalText = btnText ? btnText.textContent : '';
+                // Tạo HTTP URL trực tiếp nếu có thể (để download nhanh hơn và có progress ngay)
+                let downloadUrl = '<?php echo BASE_URL; ?>backup/' + backupId + '/download';
+                let useDirectUrl = false;
+                
+                if (data.remote_path) {
+                    const websiteUrl = data.website_url || (data.website_domain ? 'https://' + data.website_domain : null);
+                    if (websiteUrl) {
+                        // Normalize remote_path để lấy relative path từ web root
+                        let remotePath = data.remote_path;
                         
-                        // Disable nút
-                        this.style.pointerEvents = 'none';
-                        this.classList.add('disabled');
-                        
-                        // Thay đổi icon và text
-                        if (btnIcon) {
-                            btnIcon.className = 'spinner-border spinner-border-sm me-1';
-                            btnIcon.style.width = '1rem';
-                            btnIcon.style.height = '1rem';
-                        }
-                        if (btnText) {
-                            btnText.textContent = 'Đang tải...';
-                        }
-                        
-                        // Lưu trạng thái gốc
-                        this.dataset.originalIcon = originalIcon;
-                        this.dataset.originalText = originalText;
-                        
-                        // Reset sau 2 giây
-                        setTimeout(function() {
-                            if (btnIcon) {
-                                btnIcon.className = originalIcon;
-                                btnIcon.style.width = '';
-                                btnIcon.style.height = '';
+                        // Nếu là absolute path từ server, extract relative path
+                        if (remotePath.startsWith('/home/') || (remotePath.startsWith('/') && !remotePath.startsWith('/.tpanel'))) {
+                            // Tìm public_html trong path
+                            const publicHtmlIndex = remotePath.indexOf('public_html/');
+                            if (publicHtmlIndex !== -1) {
+                                remotePath = remotePath.substring(publicHtmlIndex + 'public_html/'.length);
+                            } else {
+                                const wwwIndex = remotePath.indexOf('www/');
+                                if (wwwIndex !== -1) {
+                                    remotePath = remotePath.substring(wwwIndex + 'www/'.length);
+                                }
                             }
-                            if (btnText) {
-                                btnText.textContent = originalText;
-                            }
-                            newDownloadBtn.style.pointerEvents = '';
-                            newDownloadBtn.classList.remove('disabled');
-                        }, 2000);
-                    });
+                        }
+                        
+                        // Đảm bảo remotePath là relative (bỏ leading slash)
+                        remotePath = remotePath.replace(/^\/+/, '');
+                        downloadUrl = websiteUrl.replace(/\/$/, '') + '/' + remotePath;
+                        useDirectUrl = true;
+                    }
                 }
+                
+                actionCell.innerHTML = '<a href="' + downloadUrl + '" class="btn btn-sm btn-success download-backup-btn" data-backup-id="' + backupId + '"' + (useDirectUrl ? ' target="_blank"' : '') + '><i class="bi bi-download"></i> <span class="btn-text">Download</span></a> ' + deleteFormHtml;
             }
         } else if (data.status === 'failed') {
             actionCell.innerHTML = '<span class="badge bg-danger">Thất bại</span> ' + deleteFormHtml;
@@ -342,53 +366,6 @@ $backups = $backupManager->getBackups();
         }
     });
 })();
-
-// Xử lý click nút Download
-document.addEventListener('DOMContentLoaded', function() {
-    const downloadButtons = document.querySelectorAll('.download-backup-btn');
-    
-    downloadButtons.forEach(function(btn) {
-        btn.addEventListener('click', function(e) {
-            const btnText = this.querySelector('.btn-text');
-            const btnIcon = this.querySelector('i');
-            const originalIcon = btnIcon ? btnIcon.className : '';
-            const originalText = btnText ? btnText.textContent : '';
-            
-            // Disable nút
-            this.style.pointerEvents = 'none';
-            this.classList.add('disabled');
-            
-            // Thay đổi icon và text
-            if (btnIcon) {
-                btnIcon.className = 'spinner-border spinner-border-sm me-1';
-                btnIcon.style.width = '1rem';
-                btnIcon.style.height = '1rem';
-            }
-            if (btnText) {
-                btnText.textContent = 'Đang tải...';
-            }
-            
-            // Lưu trạng thái gốc để restore sau
-            this.dataset.originalIcon = originalIcon;
-            this.dataset.originalText = originalText;
-            
-            // Kiểm tra khi cửa sổ download đóng (sau 2 giây)
-            setTimeout(function() {
-                // Reset nút về trạng thái ban đầu
-                if (btnIcon) {
-                    btnIcon.className = originalIcon;
-                    btnIcon.style.width = '';
-                    btnIcon.style.height = '';
-                }
-                if (btnText) {
-                    btnText.textContent = originalText;
-                }
-                btn.style.pointerEvents = '';
-                btn.classList.remove('disabled');
-            }, 2000);
-        });
-    });
-});
 
 // Xử lý loading state cho nút Tạo Backup - Sử dụng submit event nhưng không preventDefault
 document.addEventListener('DOMContentLoaded', function() {

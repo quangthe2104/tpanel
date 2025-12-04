@@ -51,22 +51,15 @@ try {
 
 $db = Database::getInstance();
 
-// Thử lấy cột url, nếu không có thì bỏ qua (để tương thích với DB chưa migrate)
-try {
-    $backup = $db->fetchOne("SELECT b.*, w.sftp_host, w.sftp_username, w.sftp_password, w.sftp_port, w.connection_type, w.path, w.url, w.domain 
-                             FROM backups b 
-                             LEFT JOIN websites w ON b.website_id = w.id 
-                             WHERE b.id = ?", [$backupId]);
-} catch (Exception $e) {
-    // Fallback nếu cột url chưa tồn tại
-    $backup = $db->fetchOne("SELECT b.*, w.sftp_host, w.sftp_username, w.sftp_password, w.sftp_port, w.connection_type, w.path, w.domain 
-                             FROM backups b 
-                             LEFT JOIN websites w ON b.website_id = w.id 
-                             WHERE b.id = ?", [$backupId]);
-    // Tạo url từ domain nếu có
-    if (!empty($backup['domain'])) {
-        $backup['url'] = 'https://' . $backup['domain'];
-    }
+// Lấy backup với thông tin website (không dùng w.url vì có thể chưa có trong DB)
+$backup = $db->fetchOne("SELECT b.*, w.sftp_host, w.sftp_username, w.sftp_password, w.sftp_port, w.connection_type, w.path, w.domain 
+                         FROM backups b 
+                         LEFT JOIN websites w ON b.website_id = w.id 
+                         WHERE b.id = ?", [$backupId]);
+
+// Tạo url từ domain nếu có
+if (!empty($backup['domain'])) {
+    $backup['url'] = 'https://' . $backup['domain'];
 }
 
 if (!$backup) {
@@ -86,12 +79,46 @@ if ($backup['expires_at'] && strtotime($backup['expires_at']) < time()) {
 // Log download (async, không chặn)
 $auth->logActivity($auth->getUserId(), $backup['website_id'], 'backup_downloaded', "Backup ID: $backupId");
 
-// KIỂM TRA XEM CÓ THỂ DÙNG HTTP REDIRECT KHÔNG (nhanh nhất, không cần stream)
+// Lưu file size từ DB (sẽ được override nếu có từ HTTP headers)
+$finalFileSize = !empty($backup['file_size']) && $backup['file_size'] > 0 ? $backup['file_size'] : null;
+
+// KIỂM TRA XEM CÓ THỂ DÙNG HTTP STREAM KHÔNG (proxy qua server tpanel)
 if (!empty($backup['remote_path']) && !empty($backup['url'])) {
     try {
-        // Tạo HTTP URL từ remote_path
+        // Normalize remote_path để lấy relative path từ web root
+        $remotePath = $backup['remote_path'];
+        
+        // Nếu là absolute path từ server, extract relative path từ web root
+        // Ví dụ: /home/u624007921/domains/tomko.com.vn/public_html/.tpanel/backups/file.zip
+        // -> .tpanel/backups/file.zip
+        if (strpos($remotePath, '/') === 0 || strpos($remotePath, '/home/') === 0) {
+            // Tìm public_html trong path
+            if (strpos($remotePath, 'public_html/') !== false) {
+                $parts = explode('public_html/', $remotePath, 2);
+                if (isset($parts[1])) {
+                    $remotePath = $parts[1];
+                }
+            } elseif (strpos($remotePath, 'www/') !== false) {
+                // Hoặc nếu dùng www/ thay vì public_html/
+                $parts = explode('www/', $remotePath, 2);
+                if (isset($parts[1])) {
+                    $remotePath = $parts[1];
+                }
+            } elseif (!empty($backup['path'])) {
+                // Nếu có basePath, thử normalize theo basePath
+                $basePath = rtrim($backup['path'], '/');
+                if (!empty($basePath) && strpos($remotePath, $basePath) === 0) {
+                    $remotePath = substr($remotePath, strlen($basePath));
+                    $remotePath = ltrim($remotePath, '/');
+                }
+            }
+        }
+        
+        // Đảm bảo remotePath là relative (bỏ leading slash nếu có)
+        $remotePath = ltrim($remotePath, '/');
+        
+        // Tạo HTTP URL
         $websiteUrl = rtrim($backup['url'], '/');
-        $remotePath = ltrim($backup['remote_path'], '/');
         $httpUrl = $websiteUrl . '/' . $remotePath;
         
         debugLog("Download backup #$backupId: Trying HTTP URL: $httpUrl");
@@ -107,10 +134,11 @@ if (!empty($backup['remote_path']) && !empty($backup['url'])) {
         $headers = @get_headers($httpUrl, 1, $context);
         
         if ($headers && strpos($headers[0], '200') !== false) {
-            debugLog("Download backup #$backupId: File accessible via HTTP, redirecting to: $httpUrl");
+            debugLog("Download backup #$backupId: File accessible via HTTP, redirecting directly to: $httpUrl");
             
-            // Redirect đến file HTTP (nhanh nhất, không cần stream)
-            header("Location: $httpUrl");
+            // Redirect trực tiếp đến file HTTP (NHANH NHẤT - browser tự xử lý download và progress)
+            // Browser sẽ download trực tiếp từ source, progress bar hiển thị ngay từ đầu
+            header('Location: ' . $httpUrl, true, 302);
             exit;
         } else {
             $status = $headers ? $headers[0] : 'No response';
@@ -120,36 +148,6 @@ if (!empty($backup['remote_path']) && !empty($backup['url'])) {
         debugLog("Download backup #$backupId: HTTP check failed: " . $e->getMessage() . ", falling back to SFTP/FTP stream");
     }
 }
-
-// GỬI HEADERS NGAY LẬP TỨC để browser biết đang download (nếu không dùng HTTP redirect)
-$filename = basename($backup['filename']);
-header('Content-Type: application/octet-stream');
-header('Content-Disposition: attachment; filename="' . $filename . '"');
-header('Cache-Control: no-cache, must-revalidate, no-store');
-header('Pragma: no-cache');
-header('Expires: 0');
-header('X-Accel-Buffering: no'); // Tắt buffering cho Nginx
-header('X-Accel-Limit-Rate: 0'); // Không giới hạn tốc độ cho Nginx
-header('Connection: close'); // Đóng connection ngay sau khi xong
-
-// Gửi một số data ngay để "đánh thức" browser (QUAN TRỌNG cho shared hosting)
-// Browser sẽ bắt đầu download ngay khi nhận được data đầu tiên
-$placeholderSize = 1024; // 1KB
-
-// Set Content-Length = file size + placeholder (nếu có file size)
-if (!empty($backup['file_size']) && $backup['file_size'] > 0) {
-    header('Content-Length: ' . ($backup['file_size'] + $placeholderSize));
-}
-
-// Flush headers ngay lập tức - QUAN TRỌNG cho server online
-if (ob_get_level() > 0) {
-    @ob_end_flush();
-}
-flush();
-
-// Gửi placeholder data ngay - LUÔN gửi để browser biết đang download
-echo str_repeat(' ', $placeholderSize);
-flush();
 
 // Download từ server website qua SFTP/FTP
 if (!empty($backup['remote_path'])) {
@@ -203,11 +201,51 @@ if (!empty($backup['remote_path'])) {
         
         if ($filePath === false) {
             debugLog("Download backup #$backupId: ERROR - File not found. Tried paths: " . implode(', ', $pathsToTry));
-            echo "\n\nERROR: Không thể tìm thấy file backup trên server.";
+            header('Content-Type: text/plain; charset=utf-8');
+            echo "ERROR: Không thể tìm thấy file backup trên server.";
             exit;
         }
         
-        debugLog("Download backup #$backupId: Starting stream from: $filePath");
+        // Lấy file size từ server nếu chưa có (để set Content-Length chính xác)
+        if (!$finalFileSize || $finalFileSize <= 0) {
+            try {
+                $actualFileSize = $fileManager->getFileSize($filePath);
+                if ($actualFileSize && $actualFileSize > 0) {
+                    $finalFileSize = $actualFileSize;
+                    debugLog("Download backup #$backupId: Got file size from server: " . $finalFileSize);
+                }
+            } catch (Exception $e) {
+                debugLog("Download backup #$backupId: Could not get file size from server: " . $e->getMessage());
+            }
+        }
+        
+        // GỬI TẤT CẢ HEADERS (bao gồm Content-Length) SAU KHI ĐÃ CÓ FILE SIZE
+        $filename = basename($backup['filename']);
+        header('Content-Type: application/octet-stream');
+        header('Content-Disposition: attachment; filename="' . $filename . '"');
+        
+        // Set Content-Length chính xác (QUAN TRỌNG để browser hiển thị progress)
+        if ($finalFileSize && $finalFileSize > 0) {
+            header('Content-Length: ' . $finalFileSize);
+            debugLog("Download backup #$backupId: Set Content-Length header: " . $finalFileSize);
+        } else {
+            debugLog("Download backup #$backupId: WARNING - No file size available for Content-Length");
+        }
+        
+        header('Cache-Control: no-cache, must-revalidate, no-store');
+        header('Pragma: no-cache');
+        header('Expires: 0');
+        header('X-Accel-Buffering: no'); // Tắt buffering cho Nginx
+        header('X-Accel-Limit-Rate: 0'); // Không giới hạn tốc độ cho Nginx
+        header('Connection: close'); // Đóng connection ngay sau khi xong
+        
+        // Flush headers ngay lập tức (PHẢI flush trước khi bắt đầu stream)
+        if (ob_get_level() > 0) {
+            @ob_end_flush();
+        }
+        flush();
+        
+        debugLog("Download backup #$backupId: Starting stream from: $filePath (size: " . ($finalFileSize ?? 'unknown') . ")");
         
         // Stream file trực tiếp (không load vào memory)
         $bytesStreamed = $fileManager->streamFile($filePath);

@@ -59,12 +59,18 @@ if ($backup['status'] === 'in_progress') {
     }
 }
 
+// Get website info for building direct download URL (chỉ lấy domain, không lấy url vì có thể chưa có trong DB)
+$website = $db->fetchOne("SELECT domain FROM websites WHERE id = ?", [$backup['website_id']]);
+
 // Return backup status
 $response = [
     'status' => $backup['status'],
     'file_size' => $backup['file_size'],
     'expires_at' => $backup['expires_at'],
-    'created_at' => $backup['created_at']
+    'created_at' => $backup['created_at'],
+    'remote_path' => $backup['remote_path'] ?? null,
+    'website_url' => !empty($website['domain']) ? 'https://' . $website['domain'] : null,
+    'website_domain' => $website['domain'] ?? null
 ];
 
 echo json_encode($response);

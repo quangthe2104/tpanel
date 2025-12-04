@@ -337,8 +337,9 @@ class HostingerBackupManager {
         // Xóa file backup cũ hơn 6 tiếng trước khi lấy danh sách
         $this->cleanupExpiredBackups();
         
+        // Lấy backups với thông tin website (không dùng w.url vì có thể chưa có trong DB)
         $backups = $this->db->fetchAll(
-            "SELECT b.*, w.name as website_name, u.username 
+            "SELECT b.*, w.name as website_name, w.domain, u.username 
              FROM backups b 
              LEFT JOIN websites w ON b.website_id = w.id 
              LEFT JOIN users u ON b.user_id = u.id 
@@ -347,6 +348,14 @@ class HostingerBackupManager {
              LIMIT ?",
             [$this->websiteId, $limit]
         );
+        
+        // Tạo website_url từ domain nếu có
+        foreach ($backups as &$backup) {
+            if (!empty($backup['domain'])) {
+                $backup['website_url'] = 'https://' . $backup['domain'];
+            }
+        }
+        unset($backup);
         
         // Kiểm tra file thực tế trên server cho các backup đã completed
         foreach ($backups as &$backup) {
